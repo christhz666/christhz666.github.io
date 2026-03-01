@@ -353,19 +353,16 @@
 
                                 // Wait for fonts to be ready, then allow a short grace period for icons
                                 await doc.fonts.ready;
-                                await new Promise(r => setTimeout(r, 500));
+                                await new Promise(r => setTimeout(r, 1000)); // Increased wait time for charts
 
-                                const canvas = await html2canvas(doc.body, {
-                                    width: 1280,
-                                    height: 720,
-                                    useCORS: true,
-                                    scale: 1,
-                                    backgroundColor: '#0a1628'
-                                });
-
-                                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                                 const slide = pptx.addSlide();
-                                slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+                                
+                                // Set background color
+                                slide.background = { color: '0a1628' };
+
+                                // Extract and add content as editable elements
+                                await extractAndAddContent(doc, slide, i);
+
                                 resolve();
                             } catch (err) { reject(err); }
                         };
@@ -385,6 +382,145 @@
                 overlay.classList.remove('active');
                 btn.disabled = false;
             }
+        }
+
+        async function extractAndAddContent(doc, slide, slideNum) {
+            // Get the window object from the iframe
+            const win = doc.defaultView || doc.parentWindow;
+            
+            // Extract main title
+            const titleEl = doc.querySelector('.title, h1');
+            if (titleEl) {
+                const titleText = titleEl.textContent.trim();
+                slide.addText(titleText, {
+                    x: 0.8, y: 0.4, w: 11, h: 0.8,
+                    fontSize: 32,
+                    bold: true,
+                    color: 'FFFFFF',
+                    fontFace: 'Montserrat',
+                    align: 'left',
+                    valign: 'middle'
+                });
+
+                // Add title marker/accent line
+                slide.addShape(pptx.ShapeType.rect, {
+                    x: 0.4, y: 0.4, w: 0.08, h: 0.8,
+                    fill: { color: '00d4ff' }
+                });
+            }
+
+            // Extract and add text content - improved selector
+            const contentContainers = doc.querySelectorAll('.bullet-point, .concept-card, .group-box, .list-item');
+            let yPosition = 1.5;
+            const maxY = 6.5;
+            const leftColumnWidth = 5.5;
+            
+            contentContainers.forEach((container) => {
+                if (yPosition > maxY) return;
+                
+                // Skip footer elements
+                if (container.closest('.footer')) return;
+                
+                // Extract title if present
+                const titleEl = container.querySelector('.concept-title, .group-title, .list-number');
+                const textEl = container.querySelector('.concept-text, .group-desc, .bullet-text, .list-text');
+                
+                if (titleEl) {
+                    const titleText = titleEl.textContent.trim();
+                    if (titleText) {
+                        slide.addText(titleText, {
+                            x: 0.8, 
+                            y: yPosition, 
+                            w: leftColumnWidth, 
+                            h: 0.35,
+                            fontSize: 14,
+                            bold: true,
+                            color: '00d4ff',
+                            fontFace: 'Montserrat',
+                            align: 'left',
+                            valign: 'top'
+                        });
+                        yPosition += 0.4;
+                    }
+                }
+                
+                if (textEl) {
+                    const text = textEl.textContent.trim();
+                    if (text && text.length >= 3) {
+                        // Remove HTML tags and clean up
+                        const cleanText = text.replace(/<[^>]*>/g, '');
+                        
+                        slide.addText(cleanText, {
+                            x: 0.8, 
+                            y: yPosition, 
+                            w: leftColumnWidth, 
+                            h: 'auto',
+                            fontSize: 11,
+                            color: 'e0e6ed',
+                            fontFace: 'Roboto',
+                            align: 'left',
+                            valign: 'top'
+                        });
+                        
+                        // Estimate height based on text length
+                        const estimatedHeight = Math.max(0.25, (cleanText.length / 80) * 0.25);
+                        yPosition += estimatedHeight + 0.15;
+                    }
+                }
+            });
+
+            // For slides with charts or complex visuals, capture them as images
+            const hasChart = doc.querySelector('canvas');
+            const hasComplexVisual = doc.querySelector('.penetration-diagram, .chart-container, .range-visual-container, .visual-column, .right-column');
+            
+            if (hasChart || hasComplexVisual) {
+                // Wait for charts to render
+                if (hasChart) {
+                    await new Promise(r => setTimeout(r, 500));
+                }
+                
+                // Capture the visual area as an image
+                const visualArea = doc.querySelector('.visual-column, .right-column') || 
+                                  doc.querySelector('.chart-container') ||
+                                  doc.querySelector('.penetration-diagram');
+                
+                if (visualArea) {
+                    const canvas = await html2canvas(visualArea, {
+                        width: visualArea.scrollWidth,
+                        height: visualArea.scrollHeight,
+                        useCORS: true,
+                        scale: 1.5,
+                        backgroundColor: null
+                    });
+
+                    const imgData = canvas.toDataURL('image/png', 0.95);
+                    slide.addImage({ 
+                        data: imgData, 
+                        x: 6.8, 
+                        y: 1.5, 
+                        w: 6, 
+                        h: 4.5,
+                        sizing: { type: 'contain', w: 6, h: 4.5 }
+                    });
+                }
+            }
+
+            // Add footer text
+            slide.addText('Protección Radiológica - Capítulo I', {
+                x: 0.5, y: 6.8, w: 5, h: 0.3,
+                fontSize: 9,
+                color: '666666',
+                fontFace: 'Roboto Mono',
+                align: 'left'
+            });
+            
+            slide.addText(`Página ${slideNum.toString().padStart(2, '0')}`, {
+                x: 11.5, y: 6.8, w: 1.5, h: 0.3,
+                fontSize: 9,
+                color: '666666',
+                fontFace: 'Roboto Mono',
+                align: 'right'
+            });
         }
     </script>
 </body>
