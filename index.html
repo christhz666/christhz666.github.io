@@ -3,257 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Diapositiva 12 - Movimiento Libre</title>
+    <title>Restaurador de Diapositiva 12</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg-dark: #020617;
-            --accent-blue: #3b82f6;
-            --panel-bg: #1e293b;
-        }
-
-        body, html {
-            margin: 0; padding: 0;
-            background-color: var(--bg-dark);
-            height: 100vh;
+        body { background-color: #020617; overflow: hidden; }
+        
+        /* Contenedor principal que permite scroll pero oculta barras */
+        #viewport {
             width: 100vw;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: white;
-        }
-
-        #app-container {
-            display: flex;
-            flex-direction: column;
             height: 100vh;
+            overflow: auto;
+            cursor: grab;
+            scroll-behavior: smooth;
         }
+        #viewport:active { cursor: grabbing; }
+        #viewport::-webkit-scrollbar { display: none; }
 
-        #canvas-area {
-            flex: 1;
+        /* Espacio de trabajo infinito */
+        #workspace {
+            width: 2000px;
+            height: 2000px;
             position: relative;
-            background: radial-gradient(circle at center, #111827 0%, #020617 100%);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: 
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
         }
 
-        #slide-container {
-            position: relative;
-            width: 1280px;
-            height: 720px;
-            background: #000;
-            border: 2px solid #334155;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            transform-origin: center;
-            overflow: visible; /* Permitir que elementos salgan si es necesario */
+        .card {
+            position: absolute;
+            cursor: move;
+            transition: box-shadow 0.2s;
+            user-select: none;
         }
+        .card:hover { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
 
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            pointer-events: auto;
-        }
-
-        #toolbar {
-            height: 50px;
-            background: #0f172a;
-            border-top: 1px solid #334155;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            justify-content: space-between;
-            z-index: 1000;
-        }
-
-        .controls {
-            display: flex;
-            gap: 20px;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
+        .line {
+            position: absolute;
+            background-color: #1e293b;
+            pointer-events: none; /* No interfieren con el click */
         }
     </style>
 </head>
 <body>
 
-<div id="app-container">
-    <div id="canvas-area">
-        <div id="slide-container">
-            <iframe id="slide-frame"></iframe>
-        </div>
-    </div>
+<div id="viewport">
+    <div id="workspace">
+        <!-- Título -->
+        <h1 id="main-title" class="absolute text-4xl font-bold text-blue-500" style="top: 100px; left: 100px;">
+            Análisis de Resultados de Usuario
+        </h1>
 
-    <div id="toolbar">
-        <div class="controls">
-            <span><strong>Modo:</strong> Edición Libre (Slide 12)</span>
-            <span><span class="status-dot"></span> Arrastra el fondo para bajarlo</span>
-            <span>Arrastra las tarjetas para reubicarlas</span>
+        <!-- Líneas de fondo (ahora fijas al fondo pero se mueven con el scroll) -->
+        <div class="line" style="top: 250px; left: 0; width: 100%; height: 2px;"></div>
+        <div class="line" style="top: 0; left: 500px; width: 2px; height: 100%;"></div>
+
+        <!-- Tarjetas Restauradas -->
+        <div id="card-1" class="card bg-slate-800 border-l-4 border-blue-500 p-6 rounded-lg w-72" style="top: 300px; left: 150px;">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase">Métrica A</h3>
+            <p class="text-3xl font-bold text-white mt-1">84.2%</p>
+            <p class="text-green-400 text-xs mt-2">↑ 5% incremento</p>
         </div>
-        <div id="save-indicator" style="color: #10b981; font-size: 12px; opacity: 0;">Cambio guardado</div>
+
+        <div id="card-2" class="card bg-slate-800 border-l-4 border-blue-500 p-6 rounded-lg w-72" style="top: 300px; left: 550px;">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase">Métrica B</h3>
+            <p class="text-3xl font-bold text-white mt-1">12,400</p>
+            <p class="text-blue-400 text-xs mt-2">Usuarios registrados</p>
+        </div>
+
+        <div id="card-3" class="card bg-slate-800 border-l-4 border-blue-500 p-6 rounded-lg w-72" style="top: 550px; left: 350px;">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase">Estado del Sistema</h3>
+            <p class="text-3xl font-bold text-white mt-1">Óptimo</p>
+            <div class="w-full bg-gray-700 h-2 mt-3 rounded-full overflow-hidden">
+                <div class="bg-blue-500 h-full w-[90%]"></div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Controles flotantes -->
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-slate-700 px-6 py-3 rounded-full flex gap-6 items-center shadow-2xl z-50">
+    <div class="text-xs text-slate-400">
+        <span class="font-bold text-blue-500">CLICK IZQUIERDO:</span> Mover Tarjetas
+    </div>
+    <div class="text-xs text-slate-400">
+        <span class="font-bold text-blue-500">CLICK DERECHO/ARRASTRAR FONDO:</span> Mover Vista (Scroll)
+    </div>
+    <button onclick="resetView()" class="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1 rounded border border-slate-600 transition">Resetear Vista</button>
+</div>
+
 <script>
-    const frame = document.getElementById('slide-frame');
-    const container = document.getElementById('slide-container');
-    const saveIndicator = document.getElementById('save-indicator');
-    let currentSlide = 12;
+    const viewport = document.getElementById('viewport');
+    const workspace = document.getElementById('workspace');
+    let isDraggingView = false;
+    let startX, startY, scrollLeft, scrollTop;
 
-    // Cargar contenido
-    function init() {
-        // Simulamos la carga del contenido de la slide 12
-        // En producción, aquí se cargaría el archivo real
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { 
-                        background: #050505; 
-                        color: white; 
-                        margin: 0; 
-                        padding: 40px; 
-                        font-family: sans-serif;
-                        height: 100vh;
-                        cursor: grab;
-                    }
-                    body:active { cursor: grabbing; }
-                    
-                    /* Contenedor del fondo que queremos mover */
-                    #main-content {
-                        position: relative;
-                        transition: none;
-                    }
-
-                    .tarjeta {
-                        position: absolute;
-                        background: #1e293b;
-                        border-left: 4px solid #3b82f6;
-                        padding: 20px;
-                        width: 250px;
-                        border-radius: 8px;
-                        cursor: move;
-                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-                        z-index: 10;
-                    }
-
-                    h1 { color: #3b82f6; margin-bottom: 30px; }
-
-                    /* Las líneas que no se movían */
-                    .linea-estatica {
-                        position: absolute;
-                        background: #334155;
-                        z-index: 1;
-                    }
-                </style>
-            </head>
-            <body>
-                <div id="main-content">
-                    <h1>Métricas de Rendimiento - Q4</h1>
-                    
-                    <div class="linea-estatica" style="top: 300px; left: 0; width: 100%; height: 2px;"></div>
-                    <div class="linea-estatica" style="top: 0; left: 50%; width: 2px; height: 1000px;"></div>
-
-                    <div class="tarjeta" id="card1" style="top: 100px; left: 100px;">
-                        <h3>Ventas Totales</h3>
-                        <p>$45,000.00</p>
-                        <small>+12% vs mes anterior</small>
-                    </div>
-
-                    <div class="tarjeta" id="card2" style="top: 100px; left: 700px;">
-                        <h3>Usuarios Activos</h3>
-                        <p>1,240</p>
-                        <small>Estable</small>
-                    </div>
-
-                    <div class="tarjeta" id="card3" style="top: 400px; left: 400px;">
-                        <h3>Tasa de Conversión</h3>
-                        <p>3.2%</p>
-                        <small>Requiere atención</small>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-        frame.srcdoc = htmlContent;
-    }
-
-    frame.onload = () => {
-        const doc = frame.contentDocument;
-        const mainContent = doc.getElementById('main-content');
-        
-        // Cargar posiciones previas del localStorage
-        const savedPositions = JSON.parse(localStorage.getItem('slide12_positions') || '{}');
-        Object.keys(savedPositions).forEach(id => {
-            const el = doc.getElementById(id) || doc.querySelector(`[data-id="${id}"]`);
-            if (el) {
-                el.style.top = savedPositions[id].top;
-                el.style.left = savedPositions[id].left;
-            }
-        });
-
-        // Lógica de arrastre universal
-        doc.addEventListener('mousedown', (e) => {
-            const target = e.target.closest('.tarjeta') || doc.body;
-            const isBody = target === doc.body;
-            
-            // Si es el body, moveremos el 'main-content'
-            const elementToMove = isBody ? mainContent : target;
-            
-            let startX = e.clientX;
-            let startY = e.clientY;
-            
-            const initialTop = parseInt(window.getComputedStyle(elementToMove).top) || 0;
-            const initialLeft = parseInt(window.getComputedStyle(elementToMove).left) || 0;
-
-            function onMouseMove(moveEvt) {
-                const deltaX = moveEvt.clientX - startX;
-                const deltaY = moveEvt.clientY - startY;
-                
-                elementToMove.style.position = 'absolute';
-                elementToMove.style.top = (initialTop + deltaY) + 'px';
-                elementToMove.style.left = (initialLeft + deltaX) + 'px';
-            }
-
-            function onMouseUp() {
-                doc.removeEventListener('mousemove', onMouseMove);
-                doc.removeEventListener('mouseup', onMouseUp);
-                
-                // Guardar posición
-                const id = elementToMove.id || 'main-content';
-                const currentPos = JSON.parse(localStorage.getItem('slide12_positions') || '{}');
-                currentPos[id] = { 
-                    top: elementToMove.style.top, 
-                    left: elementToMove.style.left 
-                };
-                localStorage.setItem('slide12_positions', JSON.stringify(currentPos));
-                
-                // Feedback visual
-                saveIndicator.style.opacity = 1;
-                setTimeout(() => saveIndicator.style.opacity = 0, 1000);
-            }
-
-            doc.addEventListener('mousemove', onMouseMove);
-            doc.addEventListener('mouseup', onMouseUp);
-        });
-    };
-
-    window.addEventListener('resize', () => {
-        const scale = Math.min(window.innerWidth / 1350, window.innerHeight / 800);
-        container.style.transform = `scale(${scale})`;
+    // --- LÓGICA PARA MOVER LA VISTA (EL FONDO) ---
+    viewport.addEventListener('mousedown', (e) => {
+        if (e.target === workspace || e.target.classList.contains('line')) {
+            isDraggingView = true;
+            startX = e.pageX - viewport.offsetLeft;
+            startY = e.pageY - viewport.offsetTop;
+            scrollLeft = viewport.scrollLeft;
+            scrollTop = viewport.scrollTop;
+        }
     });
 
-    init();
-    window.dispatchEvent(new Event('resize'));
+    viewport.addEventListener('mouseleave', () => isDraggingView = false);
+    viewport.addEventListener('mouseup', () => isDraggingView = false);
+
+    viewport.addEventListener('mousemove', (e) => {
+        if (!isDraggingView) return;
+        e.preventDefault();
+        const x = e.pageX - viewport.offsetLeft;
+        const y = e.pageY - viewport.offsetTop;
+        const walkX = (x - startX);
+        const walkY = (y - startY);
+        viewport.scrollLeft = scrollLeft - walkX;
+        viewport.scrollTop = scrollTop - walkY;
+    });
+
+    // --- LÓGICA PARA MOVER LAS TARJETAS ---
+    const cards = document.querySelectorAll('.card, #main-title');
+    cards.forEach(card => {
+        let isMovingCard = false;
+        let cardX, cardY;
+
+        card.addEventListener('mousedown', (e) => {
+            isMovingCard = true;
+            cardX = e.clientX - card.offsetLeft;
+            cardY = e.clientY - card.offsetTop;
+            card.style.zIndex = 100;
+            e.stopPropagation(); // Evita que se mueva el fondo
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isMovingCard) return;
+            card.style.left = (e.clientX - cardX) + 'px';
+            card.style.top = (e.clientY - cardY) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if(isMovingCard) {
+                isMovingCard = false;
+                card.style.zIndex = 10;
+            }
+        });
+    });
+
+    function resetView() {
+        viewport.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
 </script>
 
 </body>
