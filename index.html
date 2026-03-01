@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protección Radiológica - Visor Ultraestable</title>
+    <title>Protección Radiológica - Visor Estable</title>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
     <style>
         :root {
@@ -26,12 +26,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0;
             position: relative;
             background: #000;
         }
 
-        /* Estilo para los iframes gestionados dinámicamente */
+        /* Iframe con aislamiento total */
         .slide-frame {
             position: absolute;
             width: 1280px;
@@ -40,16 +39,8 @@
             background: #0a1628;
             border-radius: 4px;
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease-in-out;
             transform-origin: center;
-        }
-
-        .slide-frame.active {
-            opacity: 1;
-            pointer-events: auto;
-            z-index: 10;
+            display: block;
         }
 
         .controls {
@@ -76,43 +67,29 @@
             font-weight: 600;
         }
 
-        .btn:hover:not(:disabled) {
-            background: var(--accent);
-        }
-
+        .btn:hover:not(:disabled) { background: var(--accent); }
         .btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .page-info {
             color: #94a3b8;
             font-size: 0.9rem;
-            min-width: 80px;
+            min-width: 100px;
             text-align: center;
             font-family: 'Roboto Mono', monospace;
-        }
-
-        #status-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            margin-right: 5px;
-            display: inline-block;
         }
     </style>
 </head>
 <body>
 
     <div id="viewport-container">
-        <!-- Los iframes se inyectarán aquí dinámicamente -->
+        <!-- El iframe se recreará aquí -->
     </div>
 
     <div class="controls">
         <button class="btn" id="prev-btn" onclick="changeSlide(-1)">
             <i class="fas fa-chevron-left"></i> Anterior
         </button>
-        <div class="page-info">
-            <span id="status-dot"></span>
-            <span id="page-display">01 / 13</span>
-        </div>
+        <div class="page-info" id="page-display">01 / 13</div>
         <button class="btn" id="next-btn" onclick="changeSlide(1)">
             Siguiente <i class="fas fa-chevron-right"></i>
         </button>
@@ -122,83 +99,72 @@
         const totalSlides = 13;
         let currentSlide = 1;
         const container = document.getElementById('viewport-container');
-        let activeFrame = null;
 
-        // Escalar dinámicamente
-        function updateScale() {
-            if (!activeFrame) return;
+        function updateScale(frame) {
+            if (!frame) return;
             const scale = Math.min(
                 (container.clientWidth - 40) / 1280,
                 (container.clientHeight - 40) / 720
             );
-            activeFrame.style.transform = `scale(${scale})`;
+            frame.style.transform = `scale(${scale})`;
         }
 
         async function loadSlide(num) {
             try {
                 const response = await fetch(`${num}.txt`);
-                if (!response.ok) throw new Error("Error de red");
+                if (!response.ok) throw new Error("No se pudo cargar la diapositiva");
                 const htmlContent = await response.text();
 
-                // 1. Crear nuevo iframe (Aislamiento total)
+                // LIMPIEZA ABSOLUTA: 
+                // Eliminamos cualquier iframe existente para matar procesos de JS previos
+                container.innerHTML = '';
+
+                // CREACIÓN DESDE CERO:
                 const newFrame = document.createElement('iframe');
                 newFrame.className = 'slide-frame';
                 
-                // 2. Inyectar contenido inmediatamente
+                // Usamos srcdoc para asegurar un "Clean Slate" (pizarra limpia)
+                // Esto previene el error "Identifier already declared"
+                newFrame.srcdoc = htmlContent;
+
                 container.appendChild(newFrame);
-                const doc = newFrame.contentWindow.document;
-                doc.open();
-                doc.write(htmlContent);
-                doc.close();
 
-                // 3. Esperar un momento a que el DOM interno procese scripts
-                setTimeout(() => {
-                    // Remover el frame anterior si existe
-                    if (activeFrame) {
-                        const oldFrame = activeFrame;
-                        oldFrame.classList.remove('active');
-                        // Eliminar del DOM tras la transición para liberar memoria
-                        setTimeout(() => oldFrame.remove(), 400);
-                    }
-
-                    // Activar el nuevo
-                    activeFrame = newFrame;
-                    activeFrame.classList.add('active');
-                    updateScale();
-                    
-                    // Forzar a Chart.js a despertar si está en la diapositiva
-                    if (htmlContent.includes('Chart')) {
-                        setTimeout(() => {
-                            newFrame.contentWindow.dispatchEvent(new Event('resize'));
-                        }, 100);
-                    }
-                }, 100);
-
-                // UI updates
+                // Re-escalar cuando el iframe cargue
+                newFrame.onload = () => updateScale(newFrame);
+                
+                // Actualizar UI
                 document.getElementById('page-display').innerText = `${String(num).padStart(2, '0')} / ${totalSlides}`;
                 document.getElementById('prev-btn').disabled = (num === 1);
                 document.getElementById('next-btn').disabled = (num === totalSlides);
                 
+                currentSlide = num;
+
             } catch (err) {
-                console.error("Error cargando slide:", err);
+                console.error("Error:", err);
             }
         }
 
         function changeSlide(direction) {
             const next = currentSlide + direction;
             if (next >= 1 && next <= totalSlides) {
-                currentSlide = next;
-                loadSlide(currentSlide);
+                loadSlide(next);
             }
         }
 
-        window.addEventListener('resize', updateScale);
-        window.onload = () => loadSlide(1);
+        // Observar cambios de tamaño de ventana
+        window.addEventListener('resize', () => {
+            const frame = container.querySelector('iframe');
+            if (frame) updateScale(frame);
+        });
 
+        // Teclado
         document.addEventListener('keydown', (e) => {
             if (e.key === "ArrowRight") changeSlide(1);
             if (e.key === "ArrowLeft") changeSlide(-1);
         });
+
+        // Inicio
+        window.onload = () => loadSlide(1);
     </script>
 </body>
 </html>
