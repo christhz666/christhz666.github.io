@@ -320,6 +320,18 @@
 
         loadSlide(1);
 
+        // PowerPoint Export Configuration
+        const PPTX_CONFIG = {
+            CHART_RENDER_WAIT_MS: 1500,
+            ADDITIONAL_CHART_WAIT_MS: 800,
+            CHARS_PER_LINE: 70,
+            LINE_HEIGHT_MULTIPLIER: 0.25,
+            MIN_TEXT_LENGTH: 3,
+            PAGE_NUMBER_PAD_LENGTH: 2,
+            IMAGE_SCALE: 1.5,
+            IMAGE_QUALITY: 0.95
+        };
+
         async function exportToPowerPoint() {
             const btn = document.getElementById('export-btn');
             const overlay = document.getElementById('export-overlay');
@@ -353,7 +365,7 @@
 
                                 // Wait for fonts to be ready, then allow a short grace period for icons
                                 await doc.fonts.ready;
-                                await new Promise(r => setTimeout(r, 1500)); // Increased wait time for charts and animations
+                                await new Promise(r => setTimeout(r, PPTX_CONFIG.CHART_RENDER_WAIT_MS));
 
                                 const slide = pptx.addSlide();
                                 
@@ -486,7 +498,7 @@
                     
                     if (textEl) {
                         const text = textEl.textContent.trim();
-                        if (text && text.length >= 3) {
+                        if (text && text.length >= PPTX_CONFIG.MIN_TEXT_LENGTH) {
                             // Remove HTML tags and clean up
                             const cleanText = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
                             
@@ -503,7 +515,7 @@
                             });
                             
                             // Estimate height based on text length
-                            const estimatedHeight = Math.max(0.3, Math.ceil(cleanText.length / 70) * 0.25);
+                            const estimatedHeight = Math.max(0.3, Math.ceil(cleanText.length / PPTX_CONFIG.CHARS_PER_LINE) * PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER);
                             yPosition += estimatedHeight + 0.1;
                         }
                     }
@@ -516,7 +528,7 @@
                 if (hasChart || visualArea) {
                     // Wait for charts to render
                     if (hasChart) {
-                        await new Promise(r => setTimeout(r, 800));
+                        await new Promise(r => setTimeout(r, PPTX_CONFIG.ADDITIONAL_CHART_WAIT_MS));
                     }
                     
                     if (visualArea) {
@@ -525,7 +537,7 @@
                                 width: visualArea.scrollWidth,
                                 height: visualArea.scrollHeight,
                                 useCORS: true,
-                                scale: 1.5,
+                                scale: PPTX_CONFIG.IMAGE_SCALE,
                                 backgroundColor: null,
                                 logging: false,
                                 onclone: (clonedDoc) => {
@@ -538,7 +550,7 @@
                                 }
                             });
 
-                            const imgData = canvas.toDataURL('image/png', 0.95);
+                            const imgData = canvas.toDataURL('image/png', PPTX_CONFIG.IMAGE_QUALITY);
                             
                             // Position based on slide layout
                             const isLeftPanel = visualArea.classList.contains('left-panel');
@@ -565,7 +577,7 @@
                     align: 'left'
                 });
                 
-                slide.addText(`Página ${slideNum.toString().padStart(2, '0')}`, {
+                slide.addText(`Página ${slideNum.toString().padStart(PPTX_CONFIG.PAGE_NUMBER_PAD_LENGTH, '0')}`, {
                     x: 11.5, y: 6.8, w: 1.5, h: 0.3,
                     fontSize: 9,
                     color: '666666',
