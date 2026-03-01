@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presentación Interactiva: Protección Radiológica</title>
-    <!-- Recursos Globales para el Visor -->
+    <!-- Recursos Globales -->
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet"/>
+    <!-- Cargamos Chart.js globalmente para que esté disponible en todas las diapositivas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         body, html { 
@@ -24,6 +26,7 @@
             transform-origin: center center;
             background: #0a1628;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
         }
 
         .slide-frame {
@@ -41,35 +44,39 @@
         /* Controles UI */
         .ui-overlay {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 25px;
+            right: 25px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             z-index: 9999;
-            opacity: 0.3;
-            transition: opacity 0.3s;
+            opacity: 0.4;
+            transition: opacity 0.3s, transform 0.2s;
         }
-        .ui-overlay:hover { opacity: 1; }
+        .ui-overlay:hover { opacity: 1; transform: translateY(-2px); }
 
         .nav-btn {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            width: 44px; height: 44px;
-            border-radius: 50%;
+            width: 50px; height: 50px;
+            border-radius: 12px;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
         }
-        .nav-btn:hover { background: #3b82f6; }
+        .nav-btn:hover { background: #3b82f6; border-color: #60a5fa; }
 
         #counter {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            color: rgba(255,255,255,0.5);
-            font-size: 12px;
-            letter-spacing: 1px;
+            bottom: 35px;
+            left: 35px;
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         #loading-screen {
@@ -82,22 +89,33 @@
             align-items: center;
             z-index: 10000;
         }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="loading-screen">
-        <div style="border-top-color:transparent" class="w-12 h-12 border-4 border-blue-500 border-solid rounded-full animate-spin"></div>
-        <p style="color: #60a5fa; margin-top: 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Cargando experiencia...</p>
+        <div class="spinner"></div>
+        <p style="color: #60a5fa; margin-top: 25px; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700;">Optimizando visualización...</p>
     </div>
 
     <div id="presentation-viewport"></div>
 
-    <div id="counter">DIAPOSITIVA 1 / 13</div>
+    <div id="counter">CARGANDO...</div>
 
     <div class="ui-overlay">
-        <button class="nav-btn" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
-        <button class="nav-btn" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+        <button class="nav-btn" title="Anterior (Flecha Izquierda)" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+        <button class="nav-btn" title="Siguiente (Flecha Derecha / Espacio)" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
     </div>
 
     <script>
@@ -106,53 +124,75 @@
         const viewport = document.getElementById('presentation-viewport');
 
         function adjustScale() {
-            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.95;
+            const scale = Math.min(window.innerWidth / 1300, window.innerHeight / 750);
             viewport.style.transform = `scale(${scale})`;
         }
 
         async function createSlide(index) {
             try {
                 const response = await fetch(`${index}.txt`);
-                const html = await response.text();
+                if (!response.ok) throw new Error(`No se pudo cargar ${index}.txt`);
+                const htmlContent = await response.text();
                 
                 const wrapper = document.createElement('div');
                 wrapper.className = `slide-frame ${index === 1 ? 'active' : ''}`;
                 wrapper.id = `slide-${index}`;
                 
-                // Usamos Shadow DOM para aislar completamente los estilos de cada diapositiva
                 const shadow = wrapper.attachShadow({mode: 'open'});
                 
-                // Parseamos el contenido para separar scripts de HTML
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
+                const doc = parser.parseFromString(htmlContent, 'text/html');
                 
-                // Inyectamos el contenido base al Shadow DOM
-                shadow.innerHTML = doc.body.innerHTML;
-                
-                // Movemos los estilos del head al shadow
-                const styles = doc.querySelectorAll('style, link[rel="stylesheet"]');
-                styles.forEach(s => shadow.appendChild(s.cloneNode(true)));
+                // 1. Inyectar Estilos Críticos
+                const baseStyles = `
+                    :host { display: block; width: 100%; height: 100%; overflow: hidden; }
+                    * { box-sizing: border-box; }
+                `;
+                const baseStyleTag = document.createElement('style');
+                baseStyleTag.textContent = baseStyles;
+                shadow.appendChild(baseStyleTag);
 
-                // Aseguramos que librerías críticas estén disponibles dentro del Shadow
-                const tailwind = document.createElement('link');
-                tailwind.rel = 'stylesheet';
-                tailwind.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
-                shadow.appendChild(tailwind);
+                // 2. Inyectar Tailwind y FontAwesome dentro del Shadow
+                const tailwindLink = document.createElement('link');
+                tailwindLink.rel = 'stylesheet';
+                tailwindLink.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+                shadow.appendChild(tailwindLink);
+
+                const faLink = document.createElement('link');
+                faLink.rel = 'stylesheet';
+                faLink.href = 'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css';
+                shadow.appendChild(faLink);
+
+                // 3. Inyectar contenido HTML
+                const contentDiv = document.createElement('div');
+                contentDiv.innerHTML = doc.body.innerHTML;
+                shadow.appendChild(contentDiv);
+
+                // 4. Copiar estilos originales del archivo .txt
+                const originalStyles = doc.querySelectorAll('style');
+                originalStyles.forEach(st => shadow.appendChild(st.cloneNode(true)));
 
                 viewport.appendChild(wrapper);
 
-                // Ejecutamos scripts después de un pequeño delay para asegurar carga de DOM
+                // 5. Ejecutar Scripts con contexto de Shadow DOM
                 const scripts = doc.querySelectorAll('script');
                 scripts.forEach(s => {
                     const newScript = document.createElement('script');
-                    if(s.src) newScript.src = s.src;
-                    else newScript.textContent = s.textContent;
-                    // Los scripts de gráficos necesitan acceso al shadowRoot
-                    shadow.appendChild(newScript);
+                    // IMPORTANTE: Definimos una variable local dentro del script para que 
+                    // funciones como Chart.js puedan encontrar los elementos dentro del shadow
+                    const wrappedCode = `
+                        (function(shadow) {
+                            const document = shadow; // Reemplazamos el documento global por el shadow
+                            ${s.textContent}
+                        })(this.parentNode);
+                    `;
+                    newScript.textContent = wrappedCode;
+                    // Pequeño delay para asegurar que el DOM del shadow esté listo
+                    setTimeout(() => shadow.appendChild(newScript), 100);
                 });
 
             } catch (e) {
-                console.error("Error cargando slide", index, e);
+                console.error("Error en slide:", index, e);
             }
         }
 
@@ -160,31 +200,52 @@
             adjustScale();
             window.addEventListener('resize', adjustScale);
             
-            for(let i=1; i<=totalSlides; i++) {
+            // Cargar diapositivas secuencialmente
+            for(let i = 1; i <= totalSlides; i++) {
                 await createSlide(i);
             }
             
-            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+                updateView();
+            }, 500);
         }
 
         function updateView() {
-            document.querySelectorAll('.slide-frame').forEach((f, i) => {
+            const frames = document.querySelectorAll('.slide-frame');
+            frames.forEach((f, i) => {
                 f.classList.toggle('active', i === currentIdx);
+                // Si la slide tiene una animación de entrada de Tailwind, reiniciarla
+                if(i === currentIdx && f.shadowRoot) {
+                    const container = f.shadowRoot.querySelector('.slide-container');
+                    if(container) {
+                        container.style.animation = 'none';
+                        container.offsetHeight; // Trigger reflow
+                        container.style.animation = null;
+                    }
+                }
             });
             document.getElementById('counter').innerText = `DIAPOSITIVA ${currentIdx + 1} / ${totalSlides}`;
         }
 
         function nextSlide() {
-            if(currentIdx < totalSlides - 1) { currentIdx++; updateView(); }
+            if(currentIdx < totalSlides - 1) { 
+                currentIdx++; 
+                updateView(); 
+            }
         }
 
         function prevSlide() {
-            if(currentIdx > 0) { currentIdx--; updateView(); }
+            if(currentIdx > 0) { 
+                currentIdx--; 
+                updateView(); 
+            }
         }
 
         document.addEventListener('keydown', e => {
-            if(e.key === 'ArrowRight' || e.key === ' ') nextSlide();
-            if(e.key === 'ArrowLeft') prevSlide();
+            if(e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+            if(e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
         });
 
         init();
