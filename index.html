@@ -320,6 +320,69 @@
 
         loadSlide(1);
 
+        // PowerPoint Export Configuration
+        const PPTX_CONFIG = {
+            // Timing
+            CHART_RENDER_WAIT_MS: 1500,
+            ADDITIONAL_CHART_WAIT_MS: 800,
+            
+            // Text processing
+            CHARS_PER_LINE: 70,
+            LINE_HEIGHT_MULTIPLIER: 0.35, // Height per line in inches (adjusted for PowerPoint)
+            MIN_TEXT_LENGTH: 3,
+            PAGE_NUMBER_PAD_LENGTH: 2,
+            MIN_ESTIMATED_HEIGHT: 0.3,
+            
+            // Image quality
+            IMAGE_SCALE: 1.5,
+            IMAGE_QUALITY: 0.95,
+            
+            // Spacing
+            TITLE_SPACING: 0.4,
+            CONTENT_SPACING: 0.1,
+            CONTENT_INDENT_ADJUSTMENT: 0.2,
+            
+            // Layout positions (in inches for 16:9 slide)
+            TITLE_X: 0.8,
+            TITLE_Y: 0.4,
+            TITLE_WIDTH: 11,
+            TITLE_HEIGHT: 0.8,
+            TITLE_MARKER_X: 0.4,
+            TITLE_MARKER_Y: 0.4,
+            TITLE_MARKER_WIDTH: 0.08,
+            TITLE_MARKER_HEIGHT: 0.8,
+            SUBTITLE_Y: 1.3,
+            SUBTITLE_HEIGHT: 0.5,
+            CONTENT_START_Y: 1.9,
+            MAX_CONTENT_Y: 6.5,
+            CONTENT_X: 0.8,
+            CONTENT_INDENT_X: 1.0,
+            CONTENT_WIDTH: 5.5,
+            VISUAL_RIGHT_X: 6.8,
+            VISUAL_RIGHT_Y: 1.5,
+            VISUAL_RIGHT_W: 6,
+            VISUAL_RIGHT_H: 4.5,
+            VISUAL_LEFT_X: 0.5,
+            VISUAL_LEFT_Y: 1.0,
+            VISUAL_LEFT_W: 4.5,
+            VISUAL_LEFT_H: 5.5,
+            FOOTER_Y: 6.8,
+            FOOTER_LEFT_X: 0.5,
+            FOOTER_RIGHT_X: 11.5,
+            FOOTER_TEXT_WIDTH: 5,
+            FOOTER_WIDTH: 1.5,
+            FOOTER_HEIGHT: 0.3,
+            
+            // Error message layout
+            ERROR_MESSAGE_X: 1,
+            ERROR_MESSAGE_Y: 3,
+            ERROR_MESSAGE_WIDTH: 11.33,
+            ERROR_MESSAGE_HEIGHT: 1,
+            
+            // Content
+            FOOTER_TEXT: 'Protección Radiológica - Capítulo I'
+        };
+
         async function exportToPowerPoint() {
             const btn = document.getElementById('export-btn');
             const overlay = document.getElementById('export-overlay');
@@ -353,19 +416,16 @@
 
                                 // Wait for fonts to be ready, then allow a short grace period for icons
                                 await doc.fonts.ready;
-                                await new Promise(r => setTimeout(r, 500));
+                                await new Promise(r => setTimeout(r, PPTX_CONFIG.CHART_RENDER_WAIT_MS));
 
-                                const canvas = await html2canvas(doc.body, {
-                                    width: 1280,
-                                    height: 720,
-                                    useCORS: true,
-                                    scale: 1,
-                                    backgroundColor: '#0a1628'
-                                });
-
-                                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                                 const slide = pptx.addSlide();
-                                slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+                                
+                                // Set background color
+                                slide.background = { color: '0a1628' };
+
+                                // Extract and add content as editable elements
+                                await extractAndAddContent(doc, slide, i);
+
                                 resolve();
                             } catch (err) { reject(err); }
                         };
@@ -384,6 +444,226 @@
                 document.body.removeChild(captureFrame);
                 overlay.classList.remove('active');
                 btn.disabled = false;
+            }
+        }
+
+        async function extractAndAddContent(doc, slide, slideNum) {
+            try {
+                // Extract main title
+                const titleEl = doc.querySelector('.title, h1');
+                if (titleEl) {
+                    const titleText = titleEl.textContent.trim();
+                    if (titleText) {
+                        slide.addText(titleText, {
+                            x: PPTX_CONFIG.TITLE_X,
+                            y: PPTX_CONFIG.TITLE_Y,
+                            w: PPTX_CONFIG.TITLE_WIDTH,
+                            h: PPTX_CONFIG.TITLE_HEIGHT,
+                            fontSize: 32,
+                            bold: true,
+                            color: 'FFFFFF',
+                            fontFace: 'Montserrat',
+                            align: 'left',
+                            valign: 'middle'
+                        });
+
+                        // Add title marker/accent line
+                        slide.addShape(pptx.ShapeType.rect, {
+                            x: PPTX_CONFIG.TITLE_MARKER_X,
+                            y: PPTX_CONFIG.TITLE_MARKER_Y,
+                            w: PPTX_CONFIG.TITLE_MARKER_WIDTH,
+                            h: PPTX_CONFIG.TITLE_MARKER_HEIGHT,
+                            fill: { color: '00d4ff' }
+                        });
+                    }
+                }
+
+                // Check for subtitle (h2)
+                const subtitleEl = doc.querySelector('h2');
+                if (subtitleEl && !subtitleEl.closest('.footer')) {
+                    const subtitleText = subtitleEl.textContent.trim();
+                    if (subtitleText) {
+                        slide.addText(subtitleText, {
+                            x: PPTX_CONFIG.CONTENT_X,
+                            y: PPTX_CONFIG.SUBTITLE_Y,
+                            w: PPTX_CONFIG.TITLE_WIDTH,
+                            h: PPTX_CONFIG.SUBTITLE_HEIGHT,
+                            fontSize: 18,
+                            bold: true,
+                            color: '00d4ff',
+                            fontFace: 'Montserrat',
+                            align: 'left',
+                            valign: 'top'
+                        });
+                    }
+                }
+
+                // Extract and add text content
+                const contentContainers = doc.querySelectorAll('.bullet-point, .concept-card, .group-box, .list-item');
+                let yPosition = PPTX_CONFIG.CONTENT_START_Y;
+                
+                // Use for...of loop for better control flow
+                for (const container of contentContainers) {
+                    if (yPosition > PPTX_CONFIG.MAX_CONTENT_Y) break;
+                    
+                    // Skip footer elements
+                    if (container.closest('.footer')) continue;
+                    
+                    // Extract title if present
+                    const titleEl = container.querySelector('.concept-title, .group-title');
+                    const listNumber = container.querySelector('.list-number');
+                    const textEl = container.querySelector('.concept-text, .group-desc, .bullet-text, .list-text');
+                    
+                    // Handle list items with numbers
+                    if (listNumber && textEl) {
+                        const number = listNumber.textContent.trim();
+                        const text = textEl.textContent.trim();
+                        const fullText = `${number}. ${text}`;
+                        
+                        slide.addText(fullText, {
+                            x: PPTX_CONFIG.CONTENT_X,
+                            y: yPosition,
+                            w: PPTX_CONFIG.CONTENT_WIDTH,
+                            h: 'auto',
+                            fontSize: 12,
+                            color: 'FFFFFF',
+                            fontFace: 'Roboto',
+                            align: 'left',
+                            valign: 'top',
+                            bullet: false
+                        });
+                        yPosition += PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER;
+                        continue;
+                    }
+                    
+                    if (titleEl) {
+                        const titleText = titleEl.textContent.trim();
+                        if (titleText) {
+                            slide.addText(titleText, {
+                                x: PPTX_CONFIG.CONTENT_X,
+                                y: yPosition,
+                                w: PPTX_CONFIG.CONTENT_WIDTH,
+                                h: PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER,
+                                fontSize: 13,
+                                bold: true,
+                                color: '00d4ff',
+                                fontFace: 'Montserrat',
+                                align: 'left',
+                                valign: 'top'
+                            });
+                            yPosition += PPTX_CONFIG.TITLE_SPACING;
+                        }
+                    }
+                    
+                    if (textEl) {
+                        // textContent already extracts text-only content from DOM
+                        const cleanText = textEl.textContent.trim().replace(/\s+/g, ' ');
+                        if (cleanText && cleanText.length >= PPTX_CONFIG.MIN_TEXT_LENGTH) {
+                            slide.addText(cleanText, {
+                                x: PPTX_CONFIG.CONTENT_INDENT_X,
+                                y: yPosition,
+                                w: PPTX_CONFIG.CONTENT_WIDTH - PPTX_CONFIG.CONTENT_INDENT_ADJUSTMENT,
+                                h: 'auto',
+                                fontSize: 10,
+                                color: 'e0e6ed',
+                                fontFace: 'Roboto',
+                                align: 'left',
+                                valign: 'top'
+                            });
+                            
+                            // Estimate height based on text length
+                            const estimatedHeight = Math.max(PPTX_CONFIG.MIN_ESTIMATED_HEIGHT, Math.ceil(cleanText.length / PPTX_CONFIG.CHARS_PER_LINE) * PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER);
+                            yPosition += estimatedHeight + PPTX_CONFIG.CONTENT_SPACING;
+                        }
+                    }
+                }
+
+                // For slides with charts or complex visuals, capture them as images
+                const hasChart = doc.querySelector('canvas');
+                const visualArea = doc.querySelector('.visual-column, .right-column, .chart-container, .penetration-diagram, .left-panel');
+                
+                if (hasChart || visualArea) {
+                    // Wait for charts to render
+                    if (hasChart) {
+                        await new Promise(r => setTimeout(r, PPTX_CONFIG.ADDITIONAL_CHART_WAIT_MS));
+                    }
+                    
+                    if (visualArea) {
+                        try {
+                            const canvas = await html2canvas(visualArea, {
+                                width: visualArea.scrollWidth,
+                                height: visualArea.scrollHeight,
+                                useCORS: true,
+                                scale: PPTX_CONFIG.IMAGE_SCALE,
+                                backgroundColor: null,
+                                logging: false,
+                                onclone: (clonedDoc) => {
+                                    // Ensure canvas elements are visible in clone
+                                    const canvases = clonedDoc.querySelectorAll('canvas');
+                                    canvases.forEach(c => {
+                                        c.style.opacity = '1';
+                                        c.style.visibility = 'visible';
+                                    });
+                                }
+                            });
+
+                            const imgData = canvas.toDataURL('image/png', PPTX_CONFIG.IMAGE_QUALITY);
+                            
+                            // Position based on slide layout
+                            const isLeftPanel = visualArea.classList.contains('left-panel');
+                            slide.addImage({ 
+                                data: imgData,
+                                x: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_X : PPTX_CONFIG.VISUAL_RIGHT_X,
+                                y: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_Y : PPTX_CONFIG.VISUAL_RIGHT_Y,
+                                w: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_W : PPTX_CONFIG.VISUAL_RIGHT_W,
+                                h: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_H : PPTX_CONFIG.VISUAL_RIGHT_H,
+                                sizing: {
+                                    type: 'contain',
+                                    w: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_W : PPTX_CONFIG.VISUAL_RIGHT_W,
+                                    h: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_H : PPTX_CONFIG.VISUAL_RIGHT_H
+                                }
+                            });
+                        } catch (err) {
+                            console.warn(`Failed to capture visual for slide ${slideNum}:`, err);
+                        }
+                    }
+                }
+
+                // Add footer text
+                slide.addText(PPTX_CONFIG.FOOTER_TEXT, {
+                    x: PPTX_CONFIG.FOOTER_LEFT_X,
+                    y: PPTX_CONFIG.FOOTER_Y,
+                    w: PPTX_CONFIG.FOOTER_TEXT_WIDTH,
+                    h: PPTX_CONFIG.FOOTER_HEIGHT,
+                    fontSize: 9,
+                    color: '666666',
+                    fontFace: 'Roboto Mono',
+                    align: 'left'
+                });
+                
+                slide.addText(`Página ${slideNum.toString().padStart(PPTX_CONFIG.PAGE_NUMBER_PAD_LENGTH, '0')}`, {
+                    x: PPTX_CONFIG.FOOTER_RIGHT_X,
+                    y: PPTX_CONFIG.FOOTER_Y,
+                    w: PPTX_CONFIG.FOOTER_WIDTH,
+                    h: PPTX_CONFIG.FOOTER_HEIGHT,
+                    fontSize: 9,
+                    color: '666666',
+                    fontFace: 'Roboto Mono',
+                    align: 'right'
+                });
+            } catch (error) {
+                console.error(`Error extracting content for slide ${slideNum}:`, error);
+                // Fallback: Add error message to slide
+                slide.addText(`Error al procesar contenido de diapositiva ${slideNum}`, {
+                    x: PPTX_CONFIG.ERROR_MESSAGE_X,
+                    y: PPTX_CONFIG.ERROR_MESSAGE_Y,
+                    w: PPTX_CONFIG.ERROR_MESSAGE_WIDTH,
+                    h: PPTX_CONFIG.ERROR_MESSAGE_HEIGHT,
+                    fontSize: 16,
+                    color: 'FF0000',
+                    align: 'center',
+                    valign: 'middle'
+                });
             }
         }
     </script>
