@@ -3,191 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Protección Radiológica</title>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+    <title>Editor de Diseño - Protección Radiológica</title>
     <style>
         :root {
-            --bg-dark: #020617;
+            --bg-color: #020617;
             --accent: #3b82f6;
-            --panel-bg: rgba(15, 23, 42, 0.9);
         }
 
         body, html {
             margin: 0; padding: 0;
-            background: var(--bg-dark);
+            background: var(--bg-color);
             height: 100vh; width: 100vw;
             overflow: hidden;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
         }
 
-        /* Contenedor Principal a Pantalla Completa */
-        #viewport-container {
+        #canvas {
             width: 100vw;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #000;
             position: relative;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
         }
 
         .slide-frame {
             position: absolute;
             width: 1280px;
             height: 720px;
-            border: none;
             background: #0a1628;
-            box-shadow: 0 0 100px rgba(0,0,0,0.9);
+            border: none;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             transform-origin: center;
-            transition: transform 0.1s ease-out;
+            transition: transform 0.2s ease-out;
+            pointer-events: auto;
         }
 
-        /* Controles Flotantes / Menú Lateral Retráctil */
-        #side-panel {
+        /* Indicador de carga y número de diapositiva */
+        #info-overlay {
             position: fixed;
-            left: -280px;
-            top: 0;
-            bottom: 0;
-            width: 280px;
-            background: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255,255,255,0.1);
-            z-index: 1000;
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            color: white;
-        }
-
-        #side-panel.open { left: 0; }
-
-        .panel-trigger {
-            position: fixed;
-            left: 15px;
-            top: 15px;
-            width: 45px;
-            height: 45px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            cursor: pointer;
-            z-index: 1001;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-
-        .panel-trigger:hover { transform: scale(1.1); }
-
-        .nav-header {
-            font-weight: 800;
-            font-size: 1.2rem;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 15px;
-        }
-
-        .shortcut-hint {
-            margin-top: auto;
-            font-size: 0.8rem;
-            color: #94a3b8;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn {
-            background: rgba(255,255,255,0.05);
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
             border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: #94a3b8;
         }
 
-        .btn:hover { background: var(--accent); }
-        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        .status-badge {
-            margin-top: 15px;
-            background: rgba(46, 213, 115, 0.1);
-            color: #2ed573;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            text-align: center;
-            border: 1px solid rgba(46, 213, 115, 0.2);
+        /* Estilos inyectados para el modo diseño */
+        .drag-handle {
+            cursor: move !important;
+            user-select: none;
+        }
+        
+        .drag-handle:hover {
+            outline: 2px solid var(--accent) !important;
+            outline-offset: 2px;
         }
 
+        .dragging {
+            opacity: 0.8;
+            z-index: 9999 !important;
+        }
     </style>
 </head>
 <body>
 
-    <div class="panel-trigger" onclick="togglePanel()">
-        <i class="fas fa-bars"></i>
+    <div id="info-overlay">Diapositiva 1 / 13 | Usa Flechas para Navegar</div>
+    
+    <div id="canvas">
+        <!-- El contenido se carga aquí -->
     </div>
-
-    <div id="side-panel">
-        <div class="nav-header">
-            <i class="fas fa-edit"></i> Modo Editor
-        </div>
-        
-        <div class="control-group">
-            <button class="btn" onclick="changeSlide(-1)" id="prev-btn">
-                <i class="fas fa-chevron-left"></i> Anterior
-            </button>
-            <button class="btn" onclick="changeSlide(1)" id="next-btn">
-                <i class="fas fa-chevron-right"></i> Siguiente
-            </button>
-            <button class="btn" style="margin-top: 20px;" onclick="saveChanges()">
-                <i class="fas fa-save"></i> Imprimir / Guardar PDF
-            </button>
-        </div>
-
-        <div class="status-badge" id="slide-count">Cargando...</div>
-
-        <div class="shortcut-hint">
-            <strong>Atajos de Teclado:</strong><br><br>
-            • Espacio / Flechas: Navegar<br>
-            • M: Mostrar/Ocultar Menú<br>
-            • Click: Editar cualquier texto
-        </div>
-    </div>
-
-    <div id="viewport-container"></div>
 
     <script>
         const totalSlides = 13;
         let currentSlide = 1;
-        const container = document.getElementById('viewport-container');
-        const panel = document.getElementById('side-panel');
-
-        function togglePanel() {
-            panel.classList.toggle('open');
-        }
+        const canvas = document.getElementById('canvas');
+        const info = document.getElementById('info-overlay');
 
         function updateScale(frame) {
             if (!frame) return;
+            const padding = 40;
             const scale = Math.min(
-                window.innerWidth / 1280,
-                window.innerHeight / 720
+                (window.innerWidth - padding) / 1280,
+                (window.innerHeight - padding) / 720
             );
             frame.style.transform = `scale(${scale})`;
         }
@@ -195,43 +100,97 @@
         async function loadSlide(num) {
             try {
                 const response = await fetch(`${num}.txt`);
-                if (!response.ok) throw new Error("Archivo no encontrado");
-                
+                if (!response.ok) throw new Error("Error cargando slide");
                 let content = await response.text();
 
-                // Normalización de fuentes para evitar errores de carga
+                // Limpieza de fuentes y ajustes específicos para la Slide 7
                 content = content.replace(/family=Montserrat:wght@.*?&amp;family=Roboto/g, 'family=Montserrat:wght@300;400;600;700&family=Roboto');
+                
+                // Parche específico para la diapositiva 7 para que no se corte
+                if (num === 7) {
+                    content = content.replace('height: 100vh', 'height: 720px');
+                    content = content.replace('overflow: hidden', 'overflow: visible');
+                }
 
-                container.innerHTML = '';
+                canvas.innerHTML = '';
                 const frame = document.createElement('iframe');
                 frame.className = 'slide-frame';
                 frame.srcdoc = content;
-                container.appendChild(frame);
+                canvas.appendChild(frame);
 
                 frame.onload = () => {
                     updateScale(frame);
-                    const doc = frame.contentDocument || frame.contentWindow.document;
-                    
-                    // ACTIVAR MODO EDICIÓN EN EL IFRAME
-                    doc.body.contentEditable = 'true';
-                    doc.body.style.cursor = 'text';
-                    
-                    // Inyectar CSS adicional para que el cursor de edición sea visible
-                    const style = doc.createElement('style');
-                    style.innerHTML = `
-                        *:focus { outline: 2px dashed #3b82f6 !important; background: rgba(59, 130, 246, 0.05); }
-                        [contenteditable="true"]:empty:before { content: attr(placeholder); color: grey; }
-                    `;
-                    doc.head.appendChild(style);
+                    setupDraggableElements(frame);
                 };
 
                 currentSlide = num;
-                document.getElementById('slide-count').innerText = `Diapositiva ${num} de ${totalSlides}`;
-                document.getElementById('prev-btn').disabled = (num === 1);
-                document.getElementById('next-btn').disabled = (num === totalSlides);
-
+                info.innerText = `Diapositiva ${num} de ${totalSlides} | Modo Diseño Activo`;
             } catch (err) {
                 console.error(err);
+            }
+        }
+
+        function setupDraggableElements(frame) {
+            const doc = frame.contentDocument || frame.contentWindow.document;
+            
+            // Inyectar CSS de diseño dentro del iframe
+            const style = doc.createElement('style');
+            style.innerHTML = `
+                body { overflow: visible !important; height: 720px !important; width: 1280px !important; }
+                .movable { cursor: move !important; transition: none !important; }
+                .movable:hover { outline: 2px solid #3b82f6 !important; }
+                /* Asegurar que la slide 7 no corte el contenido */
+                .content-wrapper, section, div { max-height: none !important; }
+            `;
+            doc.head.appendChild(style);
+
+            // Identificar elementos movibles (divs de contenido, imágenes, secciones)
+            const elements = doc.querySelectorAll('div, section, img, h1, h2, p, ul');
+            
+            elements.forEach(el => {
+                if (el.children.length < 10 || el.tagName === 'IMG') { // Evitar mover el body o contenedores gigantes
+                    el.classList.add('movable');
+                    makeElementDraggable(el, doc);
+                }
+            });
+        }
+
+        function makeElementDraggable(el, doc) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            el.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                doc.onmouseup = closeDragElement;
+                doc.onmousemove = elementDrag;
+                el.classList.add('dragging');
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+
+                // Calculamos nueva posición
+                const newTop = el.offsetTop - pos2;
+                const newLeft = el.offsetLeft - pos1;
+
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                el.style.position = "absolute"; // Forzamos absoluta para movimiento libre
+                el.style.margin = "0";
+            }
+
+            function closeDragElement() {
+                doc.onmouseup = null;
+                doc.onmousemove = null;
+                el.classList.remove('dragging');
             }
         }
 
@@ -240,31 +199,17 @@
             if (next >= 1 && next <= totalSlides) loadSlide(next);
         }
 
-        function saveChanges() {
-            // Dado que es un entorno de visor, la mejor forma de "guardar" 
-            // es imprimir la vista actual a PDF
-            const frame = container.querySelector('iframe');
-            if (frame) {
-                frame.contentWindow.focus();
-                frame.contentWindow.print();
-            }
-        }
-
-        // Eventos Globales
-        window.addEventListener('resize', () => {
-            const frame = container.querySelector('iframe');
-            updateScale(frame);
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            
+        // Navegación con teclado activa desde el inicio
+        window.addEventListener('keydown', (e) => {
             if (e.key === "ArrowRight" || e.key === " ") changeSlide(1);
             if (e.key === "ArrowLeft") changeSlide(-1);
-            if (e.key.toLowerCase() === "m") togglePanel();
         });
 
-        // Inicio
+        window.addEventListener('resize', () => {
+            updateScale(canvas.querySelector('iframe'));
+        });
+
+        // Carga inicial
         window.onload = () => loadSlide(1);
     </script>
 </body>
