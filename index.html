@@ -4,100 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presentación Interactiva: Protección Radiológica</title>
-    <!-- Librerías Globales -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+    <!-- Recursos Globales para el Visor -->
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet"/>
     
     <style>
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            background: #0a1628; 
-            overflow: hidden; 
-            height: 100vh; 
-            width: 100vw; 
-            color: white;
-            font-family: 'Roboto', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin: 0; padding: 0; 
+            background: #020617; 
+            height: 100vh; width: 100vw; 
+            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Montserrat', sans-serif;
         }
 
-        #slides-container {
-            width: 1280px;  /* Ancho original de tus archivos .txt */
-            height: 720px;  /* Alto original de tus archivos .txt */
+        #presentation-viewport {
+            width: 1280px; height: 720px;
             position: relative;
             transform-origin: center center;
+            background: #0a1628;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        .slide-wrapper {
+        .slide-frame {
+            position: absolute;
+            inset: 0;
             display: none;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            position: absolute;
-            top: 0;
-            left: 0;
-            animation: fadeIn 0.5s ease-in-out;
         }
 
-        .slide-wrapper.active {
+        .slide-frame.active {
             display: block;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* Controles */
-        .controls {
+        /* Controles UI */
+        .ui-overlay {
             position: fixed;
             bottom: 20px;
             right: 20px;
             display: flex;
             gap: 10px;
             z-index: 9999;
-            opacity: 0.2;
+            opacity: 0.3;
             transition: opacity 0.3s;
         }
-        
-        .controls:hover { opacity: 1; }
+        .ui-overlay:hover { opacity: 1; }
 
-        .btn-nav {
-            background: rgba(59, 130, 246, 0.3);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(59, 130, 246, 0.4);
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
             color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
+            width: 44px; height: 44px;
+            border-radius: 50%;
             cursor: pointer;
-            transition: 0.3s;
+            display: flex; align-items: center; justify-content: center;
         }
+        .nav-btn:hover { background: #3b82f6; }
 
-        .btn-nav:hover {
-            background: rgba(59, 130, 246, 0.8);
-            transform: scale(1.1);
-        }
-
-        #slide-counter {
+        #counter {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            color: #94a3b8;
-            z-index: 9999;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            letter-spacing: 1px;
         }
 
-        #loader {
+        #loading-screen {
             position: fixed;
             inset: 0;
-            background: #0a1628;
+            background: #020617;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -108,96 +86,108 @@
 </head>
 <body>
 
-    <div id="loader">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-        <p id="loader-text">Ajustando resolución...</p>
+    <div id="loading-screen">
+        <div style="border-top-color:transparent" class="w-12 h-12 border-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+        <p style="color: #60a5fa; margin-top: 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Cargando experiencia...</p>
     </div>
 
-    <div id="slides-container"></div>
+    <div id="presentation-viewport"></div>
 
-    <div id="slide-counter">Cargando...</div>
+    <div id="counter">DIAPOSITIVA 1 / 13</div>
 
-    <div class="controls">
-        <button class="btn-nav" onclick="changeSlide(-1)"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn-nav" onclick="changeSlide(1)"><i class="fas fa-arrow-right"></i></button>
+    <div class="ui-overlay">
+        <button class="nav-btn" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+        <button class="nav-btn" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
     </div>
 
     <script>
+        const totalSlides = 13;
         let currentIdx = 0;
-        let totalSlides = 13;
-        const container = document.getElementById('slides-container');
+        const viewport = document.getElementById('presentation-viewport');
 
-        // Función de escalado automático para que quepa en cualquier pantalla
-        function fitSlides() {
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            const scale = Math.min(vw / 1280, vh / 720);
-            container.style.transform = `scale(${scale})`;
+        function adjustScale() {
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.95;
+            viewport.style.transform = `scale(${scale})`;
         }
 
-        window.addEventListener('resize', fitSlides);
+        async function createSlide(index) {
+            try {
+                const response = await fetch(`${index}.txt`);
+                const html = await response.text();
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = `slide-frame ${index === 1 ? 'active' : ''}`;
+                wrapper.id = `slide-${index}`;
+                
+                // Usamos Shadow DOM para aislar completamente los estilos de cada diapositiva
+                const shadow = wrapper.attachShadow({mode: 'open'});
+                
+                // Parseamos el contenido para separar scripts de HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Inyectamos el contenido base al Shadow DOM
+                shadow.innerHTML = doc.body.innerHTML;
+                
+                // Movemos los estilos del head al shadow
+                const styles = doc.querySelectorAll('style, link[rel="stylesheet"]');
+                styles.forEach(s => shadow.appendChild(s.cloneNode(true)));
 
-        function cleanHTML(rawHtml) {
-            let clean = rawHtml.replace(/<!DOCTYPE html>/gi, '');
-            clean = clean.replace(/<html[^>]*>|<\/html>/gi, '');
-            clean = clean.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-            clean = clean.replace(/<body[^>]*>|<\/body>/gi, '');
-            return clean;
-        }
+                // Aseguramos que librerías críticas estén disponibles dentro del Shadow
+                const tailwind = document.createElement('link');
+                tailwind.rel = 'stylesheet';
+                tailwind.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+                shadow.appendChild(tailwind);
 
-        async function loadSlides() {
-            fitSlides();
-            for (let i = 1; i <= totalSlides; i++) {
-                try {
-                    const response = await fetch(`${i}.txt`);
-                    if (!response.ok) throw new Error();
-                    const text = await response.text();
-                    
-                    const slideDiv = document.createElement('div');
-                    slideDiv.className = `slide-wrapper ${i === 1 ? 'active' : ''}`;
-                    slideDiv.innerHTML = cleanHTML(text);
-                    container.appendChild(slideDiv);
-                    
-                    if (i === 1) executeScripts(slideDiv);
-                } catch (err) {
-                    console.warn(`Error en slide ${i}`);
-                }
+                viewport.appendChild(wrapper);
+
+                // Ejecutamos scripts después de un pequeño delay para asegurar carga de DOM
+                const scripts = doc.querySelectorAll('script');
+                scripts.forEach(s => {
+                    const newScript = document.createElement('script');
+                    if(s.src) newScript.src = s.src;
+                    else newScript.textContent = s.textContent;
+                    // Los scripts de gráficos necesitan acceso al shadowRoot
+                    shadow.appendChild(newScript);
+                });
+
+            } catch (e) {
+                console.error("Error cargando slide", index, e);
             }
-            document.getElementById('loader').style.display = 'none';
-            updateCounter();
         }
 
-        function executeScripts(parent) {
-            const scripts = parent.querySelectorAll('script');
-            scripts.forEach(oldScript => {
-                const newScript = document.createElement('script');
-                if (oldScript.src) newScript.src = oldScript.src;
-                else newScript.textContent = oldScript.textContent;
-                parent.appendChild(newScript);
-                oldScript.remove();
+        async function init() {
+            adjustScale();
+            window.addEventListener('resize', adjustScale);
+            
+            for(let i=1; i<=totalSlides; i++) {
+                await createSlide(i);
+            }
+            
+            document.getElementById('loading-screen').style.display = 'none';
+        }
+
+        function updateView() {
+            document.querySelectorAll('.slide-frame').forEach((f, i) => {
+                f.classList.toggle('active', i === currentIdx);
             });
+            document.getElementById('counter').innerText = `DIAPOSITIVA ${currentIdx + 1} / ${totalSlides}`;
         }
 
-        function changeSlide(step) {
-            const slides = document.querySelectorAll('.slide-wrapper');
-            if (slides.length === 0) return;
-            slides[currentIdx].classList.remove('active');
-            currentIdx = (currentIdx + step + slides.length) % slides.length;
-            slides[currentIdx].classList.add('active');
-            executeScripts(slides[currentIdx]);
-            updateCounter();
+        function nextSlide() {
+            if(currentIdx < totalSlides - 1) { currentIdx++; updateView(); }
         }
 
-        function updateCounter() {
-            document.getElementById('slide-counter').innerText = `Presentación: ${currentIdx + 1} / ${totalSlides}`;
+        function prevSlide() {
+            if(currentIdx > 0) { currentIdx--; updateView(); }
         }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
-            if (e.key === 'ArrowLeft') changeSlide(-1);
+        document.addEventListener('keydown', e => {
+            if(e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if(e.key === 'ArrowLeft') prevSlide();
         });
 
-        window.onload = loadSlides;
+        init();
     </script>
 </body>
 </html>
