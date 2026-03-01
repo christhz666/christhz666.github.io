@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Protección Radiológica - Portada</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&amp;family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0a1628;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Tech Grid Background */
+        .tech-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+        
+        /* Radial Overlay for depth */
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, #0a1628 90%);
+            z-index: 2;
+        }
+
+        /* Abstract Particles/Atom Elements */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background-color: #00d4ff;
+            opacity: 0.6;
+            filter: blur(1px);
+            z-index: 3;
+        }
+        
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .main-content {
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .accent-line {
+            width: 120px;
+            height: 4px;
+            background-color: #00d4ff;
+            margin: 20px auto;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+        }
+
+        .glass-panel {
+            background: rgba(10, 22, 40, 0.7);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 40px 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="tech-grid"></div>
+<div class="vignette"></div>
+<!-- Decorative Orbits (Simulating Atom Structure) -->
+<div class="orbit" style="width: 600px; height: 600px; border-color: rgba(0, 212, 255, 0.1); transform: translate(-50%, -50%) rotate(45deg);"></div>
+<div class="orbit" style="width: 500px; height: 500px; border-color: rgba(0, 212, 255, 0.15); transform: translate(-50%, -50%) rotate(-30deg);"></div>
+<div class="orbit" style="width: 750px; height: 750px; border-color: rgba(0, 212, 255, 0.05);"></div>
+<!-- Static Particles -->
+<div class="particle" style="width: 8px; height: 8px; top: 20%; left: 15%; opacity: 0.4;"></div>
+<div class="particle" style="width: 4px; height: 4px; top: 15%; left: 85%; opacity: 0.6;"></div>
+<div class="particle" style="width: 6px; height: 6px; top: 80%; left: 10%; opacity: 0.3;"></div>
+<div class="particle" style="width: 10px; height: 10px; top: 75%; left: 80%; opacity: 0.5; box-shadow: 0 0 10px #00d4ff;"></div>
+<div class="particle" style="width: 5px; height: 5px; top: 40%; left: 90%; opacity: 0.4;"></div>
+<div class="particle" style="width: 3px; height: 3px; top: 60%; left: 20%; opacity: 0.7;"></div>
+<!-- Giant Background Icon -->
+<i class="fas fa-radiation fa-10x" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(0, 212, 255, 0.03); font-size: 600px; z-index: 1;"></i>
+<!-- Main Content -->
+<div class="main-content glass-panel">
+<div class="mb-6">
+<i class="fas fa-radiation-alt" style="color: #00d4ff; font-size: 64px; filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.6));"></i>
+</div>
+<h1 class="text-white font-extrabold tracking-wider leading-tight glow-text" style="font-size: 64px;">
+                PROTECCIÓN<br/>RADIOLÓGICA
+            </h1>
+<div class="accent-line"></div>
+<h2 class="font-bold tracking-wide uppercase mb-4" style="color: #00d4ff; font-size: 28px; letter-spacing: 2px;">
+                Capítulo I: Temas Generales
+            </h2>
+<div class="mt-8 px-8 py-3 rounded-full" style="background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); display: inline-block;">
+<p class="text-gray-300 font-light" style="font-size: 18px; margin: 0; font-family: 'Roboto', sans-serif;">
+                    Acreditación de Conocimientos en Protección Radiológica
+                </p>
+</div>
+</div>
+<!-- Footer Decorative Elements -->
+<div style="position: absolute; bottom: 30px; left: 40px; z-index: 10; display: flex; align-items: center; gap: 10px;">
+<div style="width: 8px; height: 8px; background: #00d4ff; border-radius: 50%;"></div>
+<p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0; font-family: 'Roboto Mono', monospace;">DOC.REF: PR-CAP1-2024</p>
+</div>
+<div style="position: absolute; bottom: 30px; right: 40px; z-index: 10;">
+<p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0; font-family: 'Roboto Mono', monospace;">CONFIDENTIALITY: PUBLIC</p>
+</div>
+</div>
+</body>
+</html>

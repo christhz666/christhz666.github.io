@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Partículas Cargadas - Protección Radiológica</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a1628;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 60px;
+            box-sizing: border-box;
+        }
+
+        /* Tech Background */
+        .tech-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+            background-image: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 60%);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            z-index: 10;
+            border-bottom: 2px solid #1a3a5c;
+            padding-bottom: 15px;
+        }
+
+        .title-marker {
+            width: 8px;
+            height: 48px;
+            background-color: #00d4ff;
+            margin-right: 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 42px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main Content Layout */
+        .content-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 40px;
+            z-index: 10;
+            height: 100%;
+        }
+
+        /* Left Column: Definitions */
+        .text-column {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .concept-card {
+            background-color: rgba(26, 58, 92, 0.4);
+            border-left: 3px solid #00d4ff;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            transition: transform 0.3s ease;
+        }
+
+        .concept-title {
+            color: #00d4ff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-icon {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .concept-text {
+            color: #e0e6ed;
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        /* Right Column: Visuals */
+        .visual-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            flex: 2;
+            background-color: rgba(10, 22, 40, 0.6);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .chart-title {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Range Diagram Area */
+        .range-visual-container {
+            flex: 1;
+            background-color: rgba(26, 58, 92, 0.3);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+
+        .range-bar-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .range-label {
+            width: 80px;
+            color: #b0c4de;
+            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .range-track {
+            flex: 1;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .range-fill {
+            height: 100%;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .range-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -2px;
+            width: 4px;
+            height: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 0 5px #ffffff;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+        
+        .footer-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .particle {
+            position: absolute;
+            background-color: #00d4ff;
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background & Particles -->
+<div class="tech-bg"></div>
+<div class="particle" style="width: 4px; height: 4px; top: 10%; left: 50%;"></div>
+<div class="particle" style="width: 6px; height: 6px; bottom: 20%; right: 10%;"></div>
+<!-- Header -->
+<div class="header">
+<div class="title-marker"></div>
+<h1 class="title">INTERACCIÓN DE PARTÍCULAS CARGADAS</h1>
+</div>
+<!-- Content -->
+<div class="content-wrapper">
+<!-- Left: Concepts -->
+<div class="text-column">
+<div class="concept-card">
+<div class="concept-title">
+<i class="fas fa-bolt concept-icon"></i>
+                        Ionización Específica
+                    </div>
+<p class="concept-text">
+                        Medida de la intensidad de ionización. Se expresa como el número de <strong>pares iónicos</strong> formados por unidad de longitud recorrida por la partícula incidente.
+                    </p>
+</div>
+<div class="concept-card">
+<div class="concept-title">
+<i class="fas fa-battery-quarter concept-icon"></i>
+                        Pérdida de Energía
+                    </div>
+<p class="concept-text">
+                        La partícula interactúa continuamente con el medio, perdiendo energía cinética en cada colisión hasta detenerse.
+                    </p>
+</div>
+<div class="concept-card">
+<div class="concept-title">
+<i class="fas fa-ruler-horizontal concept-icon"></i>
+                        Alcance (R)
+                    </div>
+<p class="concept-text">
+                        Distancia mínima necesaria para detener la radiación en un medio. Las partículas cargadas tienen un <strong>alcance definido</strong>, a diferencia de los fotones.
+                    </p>
+</div>
+<div class="concept-card">
+<div class="concept-title">
+<i class="fas fa-chart-line concept-icon"></i>
+                        Curva de Bragg
+                    </div>
+<p class="concept-text">
+                        Describe la pérdida de energía a lo largo de la trayectoria. Muestra un <strong>pico característico</strong> de máxima ionización justo antes de que la partícula se detenga.
+                    </p>
+</div>
+</div>
+<!-- Right: Visuals -->
+<div class="visual-column">
+<!-- Bragg Curve Chart -->
+<div class="chart-container">
+<h3 class="chart-title">Curva de Bragg: Ionización vs Distancia</h3>
+<div style="height: 100%; width: 100%; padding-top: 20px;">
+<canvas id="braggChart"></canvas>
+</div>
+</div>
+<!-- Range Comparison -->
+<div class="range-visual-container">
+<p style="color: #ffffff; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+<i class="fas fa-layer-group" style="margin-right: 8px; color: #00d4ff;"></i>
+                        Alcance relativo de Partículas Alfa (5 MeV)
+                    </p>
+<div class="range-bar-group">
+<div class="range-label">Aire</div>
+<div class="range-track">
+<div class="range-fill" style="width: 90%; background-color: #a29bfe;"></div>
+<span style="position: absolute; right: 15%; top: -15px; font-size: 10px; color: #a29bfe;">~3.5 cm</span>
+</div>
+</div>
+<div class="range-bar-group">
+<div class="range-label">Tejido</div>
+<div class="range-track">
+<div class="range-fill" style="width: 15%; background-color: #ff7675;"></div>
+<span style="position: absolute; left: 17%; top: -1px; font-size: 10px; color: #ff7675;">~0.04 mm</span>
+</div>
+</div>
+<div class="range-bar-group">
+<div class="range-label">Aluminio</div>
+<div class="range-track">
+<div class="range-fill" style="width: 8%; background-color: #74b9ff;"></div>
+<span style="position: absolute; left: 10%; top: -1px; font-size: 10px; color: #74b9ff;">~0.02 mm</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer">
+<p class="footer-text">Protección Radiológica - Capítulo I</p>
+<div style="display: flex; align-items: center; gap: 10px;">
+<i class="fas fa-radiation" style="color: #00d4ff; opacity: 0.5;"></i>
+<p class="footer-text">Página 09</p>
+</div>
+</div>
+</div>
+<script>
+        const ctx = document.getElementById('braggChart').getContext('2d');
+        
+        // Gradient for the line
+        const gradient = ctx.createLinearGradient(0, 0, 500, 0);
+        gradient.addColorStop(0, 'rgba(0, 212, 255, 0.5)');
+        gradient.addColorStop(0.8, 'rgba(0, 212, 255, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+
+        const braggChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['0', '10', '20', '30', '40', '50', '60', '70', '80', '85', '88', '90', '92'],
+                datasets: [{
+                    label: 'Ionización Específica (Pérdida de Energía)',
+                    data: [15, 16, 17, 19, 22, 26, 32, 45, 70, 100, 140, 20, 0],
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(10, 22, 40, 0.9)',
+                        titleColor: '#00d4ff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(0, 212, 255, 0.3)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Distancia de Penetración (Profundidad)',
+                            color: '#b0c4de',
+                            font: { size: 12 }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: '#8090a0'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Ionización / Energía',
+                            color: '#b0c4de',
+                            font: { size: 12 }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            display: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    </script>
+</body>
+</html>

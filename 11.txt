@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Radiación Electromagnética - Protección Radiológica</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a1628;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 60px;
+            box-sizing: border-box;
+        }
+
+        /* Tech Background elements - using solid shapes instead of gradients */
+        .tech-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            z-index: 10;
+            border-bottom: 2px solid #1a3a5c;
+            padding-bottom: 15px;
+        }
+
+        .title-marker {
+            width: 8px;
+            height: 48px;
+            background-color: #00d4ff;
+            margin-right: 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 40px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main Content Layout */
+        .content-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 40px;
+            z-index: 10;
+            height: 100%;
+        }
+
+        /* Left Column: Definitions */
+        .text-column {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .concept-card {
+            background-color: rgba(26, 58, 92, 0.4);
+            border-left: 3px solid #00d4ff;
+            padding: 18px 20px;
+            border-radius: 0 8px 8px 0;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Specific border colors for differentiation */
+        .card-photoelectric { border-left-color: #ff7675; }
+        .card-compton { border-left-color: #00d4ff; }
+        .card-pair { border-left-color: #55efc4; }
+
+        .concept-title {
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-icon {
+            margin-right: 12px;
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .concept-text {
+            color: #e0e6ed;
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 300;
+            margin: 0;
+        }
+
+        .highlight-text {
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        /* Right Column: Visuals */
+        .visual-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            flex: 2;
+            background-color: rgba(10, 22, 40, 0.6);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Timeline/Energy Visual Area */
+        .energy-visual-container {
+            flex: 0 0 120px; /* Fixed height for bottom visual */
+            background-color: rgba(26, 58, 92, 0.3);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visual-label {
+            color: #b0c4de;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .spectrum-bar {
+            display: flex;
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .spectrum-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(10, 22, 40, 0.8);
+            position: relative;
+        }
+
+        .seg-1 { flex: 1; background-color: #ff7675; }
+        .seg-2 { flex: 2; background-color: #00d4ff; }
+        .seg-3 { flex: 1; background-color: #55efc4; }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            color: #8090a0;
+            font-size: 10px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+        
+        .footer-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .particle {
+            position: absolute;
+            background-color: #00d4ff;
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        /* Helper for custom bullets inside cards if needed */
+        .tech-bullet {
+            color: #00d4ff;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="tech-circle" style="width: 600px; height: 600px; top: -100px; right: -100px;"></div>
+<div class="tech-circle" style="width: 300px; height: 300px; bottom: 50px; left: -50px; border-color: rgba(255, 118, 117, 0.1);"></div>
+<div class="particle" style="width: 4px; height: 4px; top: 15%; left: 40%;"></div>
+<div class="particle" style="width: 5px; height: 5px; bottom: 25%; right: 20%;"></div>
+<div class="particle" style="width: 3px; height: 3px; top: 40%; right: 40%;"></div>
+<!-- Header -->
+<div class="header">
+<div class="title-marker"></div>
+<h1 class="title">RADIACIÓN ELECTROMAGNÉTICA</h1>
+</div>
+<!-- Content -->
+<div class="content-wrapper">
+<!-- Left: Concepts -->
+<div class="text-column">
+<!-- Card 1: Photoelectric -->
+<div class="concept-card card-photoelectric">
+<div class="concept-title" style="color: #ff7675;">
+<i class="fas fa-lightbulb concept-icon"></i>
+                        Efecto Fotoeléctrico
+                    </div>
+<p class="concept-text">
+                        Predomina a <span class="highlight-text">bajas energías</span> (&lt; 0.1 MeV). El fotón incidente cede <strong>toda su energía</strong> a un electrón ligado, que es expulsado del átomo. Es el principal modo de absorción en radiodiagnóstico.
+                    </p>
+</div>
+<!-- Card 2: Compton -->
+<div class="concept-card card-compton">
+<div class="concept-title" style="color: #00d4ff;">
+<i class="fas fa-arrows-split-up-and-left concept-icon"></i>
+                        Efecto Compton
+                    </div>
+<p class="concept-text">
+                        Dominante entre <span class="highlight-text">0.5 y 10 MeV</span>. Ocurre una colisión elástica con un electrón libre. El fotón es <strong>dispersado</strong> con menor energía y cambia de dirección.
+                    </p>
+</div>
+<!-- Card 3: Pair Production -->
+<div class="concept-card card-pair">
+<div class="concept-title" style="color: #55efc4;">
+<i class="fas fa-yin-yang concept-icon"></i>
+                        Creación de Pares
+                    </div>
+<p class="concept-text">
+                        Requiere energía mínima de <span class="highlight-text">1.022 MeV</span>. El fotón desaparece cerca del núcleo creando un par <strong>electrón-positrón</strong>. Su probabilidad aumenta con la energía.
+                    </p>
+</div>
+</div>
+<!-- Right: Visuals -->
+<div class="visual-column">
+<!-- Chart -->
+<div class="chart-container">
+<div class="chart-title">
+<span>Dominancia Relativa de Procesos</span>
+<span style="font-size: 12px; color: #8090a0; font-weight: 400;">Probabilidad vs Energía (MeV)</span>
+</div>
+<div style="flex: 1; position: relative; width: 100%;">
+<canvas id="interactionChart"></canvas>
+</div>
+</div>
+<!-- Energy Spectrum Visual -->
+<div class="energy-visual-container">
+<div class="visual-label">
+<i class="fas fa-ruler-horizontal" style="margin-right: 8px; color: #b0c4de;"></i>
+                    Zonas de Predominio Energético
+                </div>
+<div class="spectrum-bar">
+<div class="spectrum-segment seg-1">
+                        FOTOELÉCTRICO
+                    </div>
+<div class="spectrum-segment seg-2">
+                        COMPTON
+                    </div>
+<div class="spectrum-segment seg-3">
+                        PARES
+                    </div>
+</div>
+<div class="scale-labels">
+<span>0.01 MeV</span>
+<span>0.1 MeV</span>
+<span>0.5 MeV</span>
+<span>1.02 MeV</span>
+<span>10 MeV</span>
+<span>100 MeV</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer">
+<p class="footer-text">Protección Radiológica - Capítulo I</p>
+<div style="display: flex; align-items: center; gap: 10px;">
+<i class="fas fa-radiation" style="color: #00d4ff; opacity: 0.5;"></i>
+<p class="footer-text">Página 11</p>
+</div>
+</div>
+</div>
+<script>
+        const ctx = document.getElementById('interactionChart').getContext('2d');
+        
+        const interactionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['0.01', '0.05', '0.1', '0.5', '1', '5', '10', '50', '100'],
+                datasets: [
+                    {
+                        label: 'Efecto Fotoeléctrico',
+                        data: [100, 60, 20, 2, 0, 0, 0, 0, 0],
+                        borderColor: '#ff7675',
+                        backgroundColor: 'rgba(255, 118, 117, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Efecto Compton',
+                        data: [5, 30, 75, 95, 90, 60, 40, 10, 5],
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Creación de Pares',
+                        data: [0, 0, 0, 0, 0, 15, 30, 80, 100],
+                        borderColor: '#55efc4',
+                        backgroundColor: 'rgba(85, 239, 196, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#e0e6ed',
+                            font: { family: 'Roboto', size: 10 },
+                            boxWidth: 12,
+                            usePointStyle: true
+                        },
+                        align: 'end'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(10, 22, 40, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e0e6ed',
+                        borderColor: 'rgba(0, 212, 255, 0.3)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: '#8090a0',
+                            font: { size: 10 }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            display: false 
+                        },
+                        title: {
+                            display: true,
+                            text: 'Contribución Relativa (%)',
+                            color: '#b0c4de',
+                            font: { size: 10 }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

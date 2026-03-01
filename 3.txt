@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Introducción - Protección Radiológica</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a1628;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            padding: 0;
+        }
+
+        /* Left Panel - Visual Focus */
+        .left-panel {
+            width: 35%;
+            height: 100%;
+            background-color: rgba(26, 58, 92, 0.4);
+            border-right: 1px solid rgba(0, 212, 255, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* Right Panel - Content */
+        .right-panel {
+            width: 65%;
+            height: 100%;
+            padding: 0 60px 0 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Main Icon Styling */
+        .main-icon-wrapper {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .icon-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #00d4ff;
+            opacity: 0.8;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .icon-ring {
+            position: absolute;
+            width: 140%;
+            height: 140%;
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 212, 255, 0.3);
+        }
+
+        /* Typography */
+        .title-bar {
+            width: 80px;
+            height: 6px;
+            background-color: #00d4ff;
+            margin-bottom: 24px;
+            border-radius: 3px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 52px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content-text {
+            color: #e0e6ed;
+            font-size: 20px;
+            line-height: 1.6;
+            font-weight: 300;
+            margin-bottom: 50px;
+            text-align: justify;
+            border-left: 4px solid rgba(0, 212, 255, 0.2);
+            padding-left: 20px;
+        }
+
+        /* Cards Grid */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .info-card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .card-icon-box {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .card-icon {
+            color: #00d4ff;
+            font-size: 18px;
+        }
+
+        .card-text {
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Decorative Background Particles */
+        .particle {
+            position: absolute;
+            background-color: #00d4ff;
+            border-radius: 50%;
+            opacity: 0.4;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 30px;
+            right: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0.6;
+            z-index: 20;
+        }
+
+        .footer-text {
+            color: #ffffff;
+            font-size: 14px;
+            font-family: 'Roboto Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Particles -->
+<div class="particle" style="width: 4px; height: 4px; top: 15%; left: 40%;"></div>
+<div class="particle" style="width: 6px; height: 6px; top: 85%; left: 60%;"></div>
+<div class="particle" style="width: 3px; height: 3px; top: 25%; right: 10%;"></div>
+<div class="particle" style="width: 5px; height: 5px; bottom: 15%; right: 30%;"></div>
+<div class="particle" style="width: 8px; height: 8px; top: 10%; right: 50%; opacity: 0.2;"></div>
+<!-- Left Panel -->
+<div class="left-panel">
+<div class="main-icon-wrapper">
+<div class="icon-ring"></div>
+<div class="icon-circle"></div>
+<i class="fas fa-shield-halved" style="font-size: 100px; color: #ffffff; z-index: 2;"></i>
+<i class="fas fa-radiation" style="font-size: 40px; color: #00d4ff; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%); z-index: 3;"></i>
+</div>
+<div style="margin-top: 40px; text-align: center;">
+<p style="color: #00d4ff; font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 3px; font-size: 18px;">SEGURIDAD</p>
+<p style="color: rgba(255,255,255,0.6); font-family: 'Roboto', sans-serif; font-size: 14px; margin-top: 5px;">RADIOLÓGICA</p>
+</div>
+</div>
+<!-- Right Panel -->
+<div class="right-panel">
+<div class="title-bar"></div>
+<h1 class="section-title">INTRODUCCIÓN</h1>
+<p class="content-text">
+                La protección radiológica es una disciplina fundamental en el uso de las radiaciones ionizantes, tanto en medicina como en la industria. Este documento explora los principios básicos de la estructura atómica, la radiactividad y las diversas formas en que la radiación interactúa con la materia y los tejidos biológicos.
+            </p>
+<div class="cards-container">
+<div class="info-card">
+<div class="card-icon-box">
+<i class="fas fa-industry card-icon"></i>
+</div>
+<p class="card-text">Medicina e Industria</p>
+</div>
+<div class="info-card">
+<div class="card-icon-box">
+<i class="fas fa-atom card-icon"></i>
+</div>
+<p class="card-text">Estructura Atómica</p>
+</div>
+<div class="info-card">
+<div class="card-icon-box">
+<i class="fas fa-triangle-exclamation card-icon"></i>
+</div>
+<p class="card-text">Riesgos y Beneficios</p>
+</div>
+<div class="info-card">
+<div class="card-icon-box">
+<i class="fas fa-book-open card-icon"></i>
+</div>
+<p class="card-text">Base Teórica</p>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer">
+<div style="width: 8px; height: 8px; background: #00d4ff; border-radius: 50%;"></div>
+<p class="footer-text">Página 03 | Temas Generales</p>
+</div>
+</div>
+</body>
+</html>

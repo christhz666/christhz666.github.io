@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Interacción de Neutrones - Protección Radiológica</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a1628;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 60px;
+            box-sizing: border-box;
+        }
+
+        /* Background Pattern */
+        .tech-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.05;
+            background-image: url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23ffffff"/></svg>');
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            z-index: 10;
+            border-bottom: 2px solid #1a3a5c;
+            padding-bottom: 15px;
+        }
+
+        .title-marker {
+            width: 8px;
+            height: 48px;
+            background-color: #00d4ff;
+            margin-right: 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 42px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* SVG Connectors Layer */
+        .svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .connector-line {
+            stroke: rgba(0, 212, 255, 0.4);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .connector-dot {
+            fill: #00d4ff;
+        }
+
+        /* Tree Container */
+        .tree-container {
+            flex: 1;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+        }
+
+        /* Node Styles */
+        .node-card {
+            background-color: rgba(26, 58, 92, 0.8);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease;
+            position: absolute;
+        }
+
+        .node-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .node-icon-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(0, 212, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+
+        .node-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: #ffffff;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .node-desc {
+            font-family: 'Roboto', sans-serif;
+            font-size: 13px;
+            color: #b0c4de;
+            line-height: 1.4;
+        }
+
+        /* Specific Node Positioning & Colors */
+        
+        /* Root */
+        .node-root {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 260px;
+            border-color: #ffffff;
+            z-index: 20;
+        }
+        .node-root:hover { transform: translateX(-50%) translateY(-5px); }
+
+        /* Level 1: Categories */
+        .node-l1 {
+            top: 130px;
+            width: 280px;
+            height: 140px;
+        }
+        
+        .node-scatter {
+            left: 20%;
+            border-color: #00d4ff;
+            background-color: rgba(0, 212, 255, 0.05);
+        }
+        .node-scatter .node-icon-circle { color: #00d4ff; border-color: #00d4ff; }
+        
+        .node-absorb {
+            right: 20%;
+            border-color: #ffa502;
+            background-color: rgba(255, 165, 2, 0.05);
+        }
+        .node-absorb .node-icon-circle { color: #ffa502; border-color: #ffa502; background-color: rgba(255, 165, 2, 0.1); }
+
+        /* Level 2: Leaves */
+        .node-l2 {
+            top: 330px;
+            width: 240px;
+            height: 180px;
+            justify-content: flex-start;
+        }
+
+        /* Scattering Leaves */
+        .node-elastic {
+            left: 8%;
+            border-top: 3px solid #00d4ff;
+        }
+        .node-inelastic {
+            left: 30%;
+            border-top: 3px solid #00d4ff;
+        }
+
+        /* Absorption Leaves */
+        .node-capture {
+            right: 30%;
+            border-top: 3px solid #ffa502;
+        }
+        .node-fission {
+            right: 8%;
+            border-top: 3px solid #ffa502;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+        
+        .footer-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            background-color: #00d4ff;
+            border-radius: 50%;
+            opacity: 0.4;
+            z-index: 1;
+        }
+
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background -->
+<div class="tech-bg"></div>
+<div class="particle" style="width: 4px; height: 4px; top: 10%; left: 5%;"></div>
+<div class="particle" style="width: 6px; height: 6px; top: 20%; right: 10%;"></div>
+<!-- Header -->
+<div class="header">
+<div class="title-marker"></div>
+<h1 class="title">INTERACCIÓN DE NEUTRONES</h1>
+</div>
+<!-- SVG Lines for Tree Structure -->
+<svg class="svg-layer">
+<!-- Root to Level 1 -->
+<path class="connector-line" d="M640 100 V130 H320 V150"></path> <!-- To Left -->
+<path class="connector-line" d="M640 100 V130 H960 V150"></path> <!-- To Right -->
+<!-- Scatter to Leaves -->
+<path class="connector-line" d="M320 270 V300 H180 V330"></path> <!-- To Elastic -->
+<path class="connector-line" d="M320 270 V300 H460 V330"></path> <!-- To Inelastic -->
+<!-- Absorb to Leaves -->
+<path class="connector-line" d="M960 270 V300 H820 V330" style="stroke: rgba(255, 165, 2, 0.4);"></path> <!-- To Capture -->
+<path class="connector-line" d="M960 270 V300 H1100 V330" style="stroke: rgba(255, 165, 2, 0.4);"></path> <!-- To Fission -->
+<!-- Dots -->
+<circle class="connector-dot" cx="640" cy="130" r="4"></circle>
+<circle class="connector-dot" cx="320" cy="300" r="4"></circle>
+<circle class="connector-dot" cx="960" cy="300" r="4" style="fill: #ffa502;"></circle>
+</svg>
+<!-- Tree Content -->
+<div class="tree-container">
+<!-- ROOT NODE -->
+<div class="node-card node-root">
+<div class="node-icon-circle" style="border-color: #fff; background-color: rgba(255,255,255,0.1);">
+<i class="fas fa-atom" style="color: #fff;"></i>
+</div>
+<h3 class="node-title">Neutrón + Materia</h3>
+<p class="node-desc">Interacción fundamentalmente diferente a partículas cargadas.</p>
+</div>
+<!-- LEVEL 1: DISPERSIÓN -->
+<div class="node-card node-l1 node-scatter">
+<div class="node-icon-circle">
+<i class="fas fa-share-nodes"></i>
+</div>
+<h3 class="node-title" style="color: #00d4ff;">1. Dispersión</h3>
+<p class="node-desc">Intercambio de energía cinética. El neutrón permanece libre después del proceso.</p>
+</div>
+<!-- LEVEL 1: ABSORCIÓN -->
+<div class="node-card node-l1 node-absorb">
+<div class="node-icon-circle">
+<i class="fas fa-circle-dot"></i>
+</div>
+<h3 class="node-title" style="color: #ffa502;">2. Absorción</h3>
+<p class="node-desc">El neutrón es retenido en el núcleo, formando una nueva partícula o núcleo compuesto.</p>
+</div>
+<!-- LEVEL 2 LEAVES: SCATTERING GROUP -->
+<div class="node-card node-l2 node-elastic">
+<h4 class="node-title" style="font-size: 14px; margin-bottom: 8px;">A. Dispersión Elástica</h4>
+<div style="width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 8px;"></div>
+<p class="node-desc" style="text-align: left;">
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Se conserva la energía cinética total.<br/>
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Núcleo queda en estado fundamental.<br/>
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Dominante en neutrones &lt; 0.1 MeV.
+            </p>
+</div>
+<div class="node-card node-l2 node-inelastic">
+<h4 class="node-title" style="font-size: 14px; margin-bottom: 8px;">B. Dispersión Inelástica</h4>
+<div style="width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 8px;"></div>
+<p class="node-desc" style="text-align: left;">
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Neutrones rápidos.<br/>
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Núcleo absorbe energía -&gt; <strong>Excitado</strong>.<br/>
+<i class="fas fa-check" style="color: #00d4ff; margin-right: 5px;"></i> Emite Rayos Gamma de dispersión.
+            </p>
+</div>
+<!-- LEVEL 2 LEAVES: ABSORPTION GROUP -->
+<div class="node-card node-l2 node-capture">
+<h4 class="node-title" style="font-size: 14px; margin-bottom: 8px; color: #ffa502;">A. Captura (n, γ)</h4>
+<div style="width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 8px;"></div>
+<p class="node-desc" style="text-align: left;">
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> Núcleo absorbe neutrón.<br/>
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> Se forma núcleo compuesto excitado.<br/>
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> Emisión de radiación Gamma.
+            </p>
+</div>
+<div class="node-card node-l2 node-fission">
+<h4 class="node-title" style="font-size: 14px; margin-bottom: 8px; color: #ffa502;">B. Fisión</h4>
+<div style="width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 8px;"></div>
+<p class="node-desc" style="text-align: left;">
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> En materiales fisibles (U, Pu).<br/>
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> Núcleo se rompe en fragmentos.<br/>
+<i class="fas fa-check" style="color: #ffa502; margin-right: 5px;"></i> Libera gran energía + neutrones.
+            </p>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer">
+<p class="footer-text">Protección Radiológica - Capítulo I</p>
+<div style="display: flex; align-items: center; gap: 10px;">
+<i class="fas fa-radiation" style="color: #00d4ff; opacity: 0.5;"></i>
+<p class="footer-text">Página 12</p>
+</div>
+</div>
+</div>
+</body>
+</html>

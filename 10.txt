@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tipos de Interacción - Protección Radiológica</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a1628;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+        }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #0a1628;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 60px;
+            box-sizing: border-box;
+        }
+
+        /* Tech Background */
+        .tech-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+            background-image: url('data:image/svg+xml;utf8,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%2300d4ff" fill-opacity="0.2"><path d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/></g></g></svg>');
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            z-index: 10;
+            border-bottom: 2px solid #1a3a5c;
+            padding-bottom: 15px;
+        }
+
+        .title-marker {
+            width: 8px;
+            height: 48px;
+            background-color: #00d4ff;
+            margin-right: 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 42px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main List Container */
+        .list-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        /* Row Styles */
+        .interaction-row {
+            display: flex;
+            align-items: center;
+            background-color: rgba(26, 58, 92, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .interaction-row:hover {
+            background-color: rgba(26, 58, 92, 0.7);
+            transform: translateX(5px);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        /* Icon Section */
+        .row-icon-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px;
+            flex-shrink: 0;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Category Indicator */
+        .category-tag {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+
+        /* Text Content */
+        .row-content {
+            flex: 1;
+        }
+
+        .row-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .row-desc {
+            font-family: 'Roboto', sans-serif;
+            color: #b0c4de;
+            font-size: 14px;
+            line-height: 1.4;
+            font-weight: 300;
+        }
+
+        /* Specific Styles per Type */
+        /* Elastic: Blue */
+        .type-elastic .row-icon-box {
+            background-color: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        .type-elastic .category-tag { background-color: #00d4ff; }
+        
+        /* Inelastic: Green */
+        .type-inelastic .row-icon-box {
+            background-color: rgba(46, 213, 115, 0.1);
+            color: #2ed573;
+            border-color: #2ed573;
+        }
+        .type-inelastic .category-tag { background-color: #2ed573; }
+
+        /* Bremsstrahlung: Magenta/Red */
+        .type-brems .row-icon-box {
+            background-color: rgba(255, 71, 87, 0.1);
+            color: #ff4757;
+            border-color: #ff4757;
+        }
+        .type-brems .category-tag { background-color: #ff4757; }
+
+        /* Detail badge */
+        .detail-badge {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background-color: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            margin-left: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+        
+        .footer-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Decorative Particles */
+        .particle {
+            position: absolute;
+            background-color: #00d4ff;
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="tech-bg"></div>
+<div class="particle" style="width: 4px; height: 4px; top: 10%; left: 20%;"></div>
+<div class="particle" style="width: 7px; height: 7px; bottom: 15%; right: 10%;"></div>
+<div class="particle" style="width: 3px; height: 3px; top: 40%; right: 40%; opacity: 0.1;"></div>
+<!-- Header -->
+<div class="header">
+<div class="title-marker"></div>
+<h1 class="title">TIPOS DE INTERACCIÓN</h1>
+</div>
+<!-- Main Content: List of 5 Mechanisms -->
+<div class="list-container">
+<!-- Item 1: Elastic with Electrons -->
+<div class="interaction-row type-elastic">
+<div class="category-tag"></div>
+<div class="row-icon-box">
+<i class="fas fa-atom"></i>
+</div>
+<div class="row-content">
+<div class="row-title">
+                        1. Colisión Elástica con Electrones
+                        <span class="detail-badge">Partículas &lt; 100 eV</span>
+</div>
+<p class="row-desc">
+                        La partícula incidente es desviada por el campo coulombiano de los electrones orbitales. Pierde muy poca energía cinética en el proceso.
+                    </p>
+</div>
+</div>
+<!-- Item 2: Elastic with Nuclei -->
+<div class="interaction-row type-elastic">
+<div class="category-tag"></div>
+<div class="row-icon-box">
+<i class="fas fa-arrows-split-up-and-left"></i>
+</div>
+<div class="row-content">
+<div class="row-title">
+                        2. Colisión Elástica con Núcleos
+                        <span class="detail-badge">Partículas Beta</span>
+</div>
+<p class="row-desc">
+                        La partícula es desviada por interacción con el campo coulombiano de las cargas positivas nucleares (protones). Cede parte de su energía de movimiento.
+                    </p>
+</div>
+</div>
+<!-- Item 3: Inelastic with Electrons -->
+<div class="interaction-row type-inelastic">
+<div class="category-tag"></div>
+<div class="row-icon-box">
+<i class="fas fa-bolt"></i>
+</div>
+<div class="row-content">
+<div class="row-title">
+                        3. Colisión Inelástica con Electrones
+                        <span class="detail-badge">Excitación / Ionización</span>
+</div>
+<p class="row-desc">
+                        Energía empleada en excitar electrones (emisión posterior de fotones) o arrancarlos (ionización), formando un <strong>par iónico</strong>.
+                    </p>
+</div>
+</div>
+<!-- Item 4: Inelastic with Nuclei -->
+<div class="interaction-row type-inelastic">
+<div class="category-tag"></div>
+<div class="row-icon-box">
+<i class="fas fa-sun"></i>
+</div>
+<div class="row-content">
+<div class="row-title">
+                        4. Colisión Inelástica con Núcleos
+                    </div>
+<p class="row-desc">
+                        La partícula es acelerada/frenada por el campo nuclear. La energía cedida se emite como radiación EM o se emplea en excitar el núcleo.
+                    </p>
+</div>
+</div>
+<!-- Item 5: Bremsstrahlung -->
+<div class="interaction-row type-brems">
+<div class="category-tag"></div>
+<div class="row-icon-box">
+<i class="fas fa-wave-square"></i>
+</div>
+<div class="row-content">
+<div class="row-title">
+                        5. Radiación de Frenado (Bremsstrahlung)
+                        <span class="detail-badge" style="color: #ff4757; background-color: rgba(255, 71, 87, 0.1);">Crítico en Beta</span>
+</div>
+<p class="row-desc">
+                        Fenómeno donde la partícula pierde energía cinética al interactuar con el núcleo, transformándola en <strong>radiación electromagnética (Rayos X)</strong>.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer">
+<p class="footer-text">Protección Radiológica - Capítulo I</p>
+<div style="display: flex; align-items: center; gap: 10px;">
+<i class="fas fa-radiation" style="color: #00d4ff; opacity: 0.5;"></i>
+<p class="footer-text">Página 10</p>
+</div>
+</div>
+</div>
+</body>
+</html>
