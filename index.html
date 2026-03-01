@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protección Radiológica - Sistema de Presentación</title>
+    <title>Protección Radiológica - Visor Ultraestable</title>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
     <style>
         :root {
@@ -17,7 +17,7 @@
             background: var(--bg-dark);
             height: 100vh; width: 100vw;
             overflow: hidden;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex; flex-direction: column;
         }
 
@@ -26,31 +26,39 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            padding: 0;
             position: relative;
-            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            background: #000;
         }
 
-        #slide-frame {
+        /* Estilo para los iframes gestionados dinámicamente */
+        .slide-frame {
+            position: absolute;
             width: 1280px;
             height: 720px;
             border: none;
             background: #0a1628;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             border-radius: 4px;
-            transform-origin: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
             opacity: 0;
-            transition: opacity 0.4s ease;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+            transform-origin: center;
+        }
+
+        .slide-frame.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
         }
 
         .controls {
-            height: 70px;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
+            height: 60px;
+            background: #0f172a;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 25px;
+            gap: 20px;
             border-top: 1px solid rgba(255,255,255,0.1);
             z-index: 100;
         }
@@ -59,132 +67,118 @@
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
             display: flex; align-items: center; gap: 8px;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
 
         .btn:hover:not(:disabled) {
             background: var(--accent);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
 
-        .btn:disabled {
-            opacity: 0.2;
-            cursor: not-allowed;
-        }
+        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .page-info {
-            color: var(--text-main);
-            font-size: 1rem;
-            font-weight: 700;
-            min-width: 100px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            min-width: 80px;
             text-align: center;
-            font-family: monospace;
+            font-family: 'Roboto Mono', monospace;
         }
 
-        #loader-overlay {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-dark);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            transition: opacity 0.5s ease;
-        }
-
-        .loader-content { text-align: center; color: white; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 3px solid rgba(59, 130, 246, 0.1);
-            border-top-color: var(--accent);
+        #status-dot {
+            width: 8px; height: 8px;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 15px;
+            background: #22c55e;
+            margin-right: 5px;
+            display: inline-block;
         }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loader-overlay">
-        <div class="loader-content">
-            <div class="spinner"></div>
-            <div style="font-size: 12px; opacity: 0.7; letter-spacing: 2px;">CARGANDO...</div>
-        </div>
-    </div>
-
     <div id="viewport-container">
-        <iframe id="slide-frame" name="slide-frame"></iframe>
+        <!-- Los iframes se inyectarán aquí dinámicamente -->
     </div>
 
     <div class="controls">
         <button class="btn" id="prev-btn" onclick="changeSlide(-1)">
-            <i class="fas fa-arrow-left"></i> Anterior
+            <i class="fas fa-chevron-left"></i> Anterior
         </button>
-        <div class="page-info" id="page-display">01 / 13</div>
+        <div class="page-info">
+            <span id="status-dot"></span>
+            <span id="page-display">01 / 13</span>
+        </div>
         <button class="btn" id="next-btn" onclick="changeSlide(1)">
-            Siguiente <i class="fas fa-arrow-right"></i>
+            Siguiente <i class="fas fa-chevron-right"></i>
         </button>
     </div>
 
     <script>
         const totalSlides = 13;
         let currentSlide = 1;
-        const frame = document.getElementById('slide-frame');
-        const loader = document.getElementById('loader-overlay');
-        
-        // Función para escalar el contenido
+        const container = document.getElementById('viewport-container');
+        let activeFrame = null;
+
+        // Escalar dinámicamente
         function updateScale() {
-            const container = document.getElementById('viewport-container');
+            if (!activeFrame) return;
             const scale = Math.min(
-                (container.clientWidth - 20) / 1280,
-                (container.clientHeight - 20) / 720
+                (container.clientWidth - 40) / 1280,
+                (container.clientHeight - 40) / 720
             );
-            frame.style.transform = `scale(${scale})`;
+            activeFrame.style.transform = `scale(${scale})`;
         }
 
-        // Carga de archivos con gestión de scripts
-        async function loadSlideContent(num) {
+        async function loadSlide(num) {
             try {
                 const response = await fetch(`${num}.txt`);
-                if (!response.ok) throw new Error('No se pudo encontrar el archivo');
-                let html = await response.text();
+                if (!response.ok) throw new Error("Error de red");
+                const htmlContent = await response.text();
 
-                // Resetear iframe para limpiar memoria y scripts previos
-                frame.style.opacity = '0';
+                // 1. Crear nuevo iframe (Aislamiento total)
+                const newFrame = document.createElement('iframe');
+                newFrame.className = 'slide-frame';
                 
-                // Pequeña pausa para asegurar limpieza de DOM
-                await new Promise(r => setTimeout(r, 50));
-
-                const doc = frame.contentWindow.document;
+                // 2. Inyectar contenido inmediatamente
+                container.appendChild(newFrame);
+                const doc = newFrame.contentWindow.document;
                 doc.open();
-                doc.write(html);
+                doc.write(htmlContent);
                 doc.close();
 
-                // Verificar si hay gráficos y forzar un redibujado si es necesario
-                // Esto ayuda a las slides 9 y 11
-                if (html.includes('Chart')) {
-                    setTimeout(() => {
-                        if (frame.contentWindow.window.dispatchEvent) {
-                            frame.contentWindow.window.dispatchEvent(new Event('resize'));
-                        }
-                    }, 500);
-                }
+                // 3. Esperar un momento a que el DOM interno procese scripts
+                setTimeout(() => {
+                    // Remover el frame anterior si existe
+                    if (activeFrame) {
+                        const oldFrame = activeFrame;
+                        oldFrame.classList.remove('active');
+                        // Eliminar del DOM tras la transición para liberar memoria
+                        setTimeout(() => oldFrame.remove(), 400);
+                    }
 
-                // Actualizar UI
+                    // Activar el nuevo
+                    activeFrame = newFrame;
+                    activeFrame.classList.add('active');
+                    updateScale();
+                    
+                    // Forzar a Chart.js a despertar si está en la diapositiva
+                    if (htmlContent.includes('Chart')) {
+                        setTimeout(() => {
+                            newFrame.contentWindow.dispatchEvent(new Event('resize'));
+                        }, 100);
+                    }
+                }, 100);
+
+                // UI updates
                 document.getElementById('page-display').innerText = `${String(num).padStart(2, '0')} / ${totalSlides}`;
                 document.getElementById('prev-btn').disabled = (num === 1);
                 document.getElementById('next-btn').disabled = (num === totalSlides);
                 
-                frame.style.opacity = '1';
             } catch (err) {
                 console.error("Error cargando slide:", err);
             }
@@ -194,22 +188,13 @@
             const next = currentSlide + direction;
             if (next >= 1 && next <= totalSlides) {
                 currentSlide = next;
-                loadSlideContent(currentSlide);
+                loadSlide(currentSlide);
             }
         }
 
         window.addEventListener('resize', updateScale);
-        
-        window.onload = async () => {
-            updateScale();
-            await loadSlideContent(1);
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 500);
-            }, 800);
-        };
+        window.onload = () => loadSlide(1);
 
-        // Soporte para teclado
         document.addEventListener('keydown', (e) => {
             if (e.key === "ArrowRight") changeSlide(1);
             if (e.key === "ArrowLeft") changeSlide(-1);
