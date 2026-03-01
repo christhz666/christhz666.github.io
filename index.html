@@ -20,12 +20,16 @@
             width: 100vw; 
             color: white;
             font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         #slides-container {
-            width: 100%;
-            height: 100%;
+            width: 1280px;  /* Ancho original de tus archivos .txt */
+            height: 720px;  /* Alto original de tus archivos .txt */
             position: relative;
+            transform-origin: center center;
         }
 
         .slide-wrapper {
@@ -33,6 +37,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
             animation: fadeIn 0.5s ease-in-out;
         }
 
@@ -45,7 +52,7 @@
             to { opacity: 1; }
         }
 
-        /* Controles discretos para PowerPoint */
+        /* Controles */
         .controls {
             position: fixed;
             bottom: 20px;
@@ -53,34 +60,33 @@
             display: flex;
             gap: 10px;
             z-index: 9999;
-            opacity: 0.3;
+            opacity: 0.2;
             transition: opacity 0.3s;
         }
         
         .controls:hover { opacity: 1; }
 
         .btn-nav {
-            background: rgba(59, 130, 246, 0.2);
+            background: rgba(59, 130, 246, 0.3);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(59, 130, 246, 0.4);
             color: white;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 8px;
             cursor: pointer;
             transition: 0.3s;
-            font-weight: 600;
         }
 
         .btn-nav:hover {
-            background: rgba(59, 130, 246, 0.6);
-            transform: translateY(-2px);
+            background: rgba(59, 130, 246, 0.8);
+            transform: scale(1.1);
         }
 
         #slide-counter {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -88,7 +94,6 @@
             z-index: 9999;
         }
 
-        /* Loading Screen */
         #loader {
             position: fixed;
             inset: 0;
@@ -105,16 +110,16 @@
 
     <div id="loader">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-        <p id="loader-text">Cargando Diapositivas...</p>
+        <p id="loader-text">Ajustando resolución...</p>
     </div>
 
     <div id="slides-container"></div>
 
-    <div id="slide-counter">Preparando presentación...</div>
+    <div id="slide-counter">Cargando...</div>
 
     <div class="controls">
-        <button class="btn-nav" onclick="changeSlide(-1)" title="Anterior"><i class="fas fa-chevron-left"></i></button>
-        <button class="btn-nav" onclick="changeSlide(1)" title="Siguiente"><i class="fas fa-chevron-right"></i></button>
+        <button class="btn-nav" onclick="changeSlide(-1)"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn-nav" onclick="changeSlide(1)"><i class="fas fa-arrow-right"></i></button>
     </div>
 
     <script>
@@ -122,7 +127,16 @@
         let totalSlides = 13;
         const container = document.getElementById('slides-container');
 
-        // Limpia el HTML para evitar duplicidad de etiquetas estructurales
+        // Función de escalado automático para que quepa en cualquier pantalla
+        function fitSlides() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const scale = Math.min(vw / 1280, vh / 720);
+            container.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener('resize', fitSlides);
+
         function cleanHTML(rawHtml) {
             let clean = rawHtml.replace(/<!DOCTYPE html>/gi, '');
             clean = clean.replace(/<html[^>]*>|<\/html>/gi, '');
@@ -132,28 +146,21 @@
         }
 
         async function loadSlides() {
-            const loaderText = document.getElementById('loader-text');
+            fitSlides();
             for (let i = 1; i <= totalSlides; i++) {
                 try {
-                    loaderText.innerText = `Cargando diapositiva ${i}...`;
-                    // Como están en root, la ruta es simplemente i.txt
                     const response = await fetch(`${i}.txt`);
-                    if (!response.ok) throw new Error(`No se encontró ${i}.txt`);
-                    
+                    if (!response.ok) throw new Error();
                     const text = await response.text();
+                    
                     const slideDiv = document.createElement('div');
                     slideDiv.className = `slide-wrapper ${i === 1 ? 'active' : ''}`;
-                    slideDiv.id = `slide-${i-1}`;
-                    
                     slideDiv.innerHTML = cleanHTML(text);
                     container.appendChild(slideDiv);
                     
-                    // Inicializar scripts de la primera slide inmediatamente
                     if (i === 1) executeScripts(slideDiv);
-                    
                 } catch (err) {
-                    console.error("Error crítico:", err);
-                    document.getElementById('slide-counter').innerText = "Error cargando archivos";
+                    console.warn(`Error en slide ${i}`);
                 }
             }
             document.getElementById('loader').style.display = 'none';
@@ -164,13 +171,9 @@
             const scripts = parent.querySelectorAll('script');
             scripts.forEach(oldScript => {
                 const newScript = document.createElement('script');
-                if (oldScript.src) {
-                    newScript.src = oldScript.src;
-                } else {
-                    newScript.textContent = oldScript.textContent;
-                }
+                if (oldScript.src) newScript.src = oldScript.src;
+                else newScript.textContent = oldScript.textContent;
                 parent.appendChild(newScript);
-                // Eliminar el script viejo para evitar acumulaciones si se vuelve a entrar
                 oldScript.remove();
             });
         }
@@ -178,35 +181,20 @@
         function changeSlide(step) {
             const slides = document.querySelectorAll('.slide-wrapper');
             if (slides.length === 0) return;
-
             slides[currentIdx].classList.remove('active');
-            
-            currentIdx += step;
-            if (currentIdx >= slides.length) currentIdx = 0;
-            if (currentIdx < 0) currentIdx = slides.length - 1;
-
-            const nextSlide = slides[currentIdx];
-            nextSlide.classList.add('active');
-            
-            // Re-ejecutar lógica de animaciones y gráficos
-            executeScripts(nextSlide);
+            currentIdx = (currentIdx + step + slides.length) % slides.length;
+            slides[currentIdx].classList.add('active');
+            executeScripts(slides[currentIdx]);
             updateCounter();
         }
 
         function updateCounter() {
-            document.getElementById('slide-counter').innerText = `Página ${currentIdx + 1} de ${totalSlides}`;
+            document.getElementById('slide-counter').innerText = `Presentación: ${currentIdx + 1} / ${totalSlides}`;
         }
 
-        // Navegación fluida
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
-                e.preventDefault();
-                changeSlide(1);
-            }
-            if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-                e.preventDefault();
-                changeSlide(-1);
-            }
+            if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+            if (e.key === 'ArrowLeft') changeSlide(-1);
         });
 
         window.onload = loadSlides;
