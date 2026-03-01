@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor Maestro - Protección Radiológica</title>
+    <title>Editor Maestro - Diapositiva 12 y Guías</title>
     <style>
         :root {
             --bg-color: #020617;
@@ -38,7 +38,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             transform-origin: center;
             pointer-events: auto;
-            user-select: none;
         }
 
         #status-bar {
@@ -66,7 +65,6 @@
             border-radius: 4px;
             color: #60a5fa;
             font-weight: 600;
-            border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
         .save-indicator {
@@ -81,7 +79,7 @@
     <div id="status-bar">
         <span>Diapositiva <b id="current-num" style="color: white;">1</b> / 13</span>
         <span>|</span>
-        <span>Arrastra elementos libremente</span>
+        <span>Mueve cualquier línea o elemento</span>
         <span>|</span>
         <span>Navegar: <span class="key-hint">←</span> <span class="key-hint">→</span></span>
         <span id="save-msg" class="save-indicator">✓ Guardado</span>
@@ -96,19 +94,16 @@
         const currentNumDisp = document.getElementById('current-num');
         const saveMsg = document.getElementById('save-msg');
 
-        // Función para guardar posiciones en LocalStorage
         function savePosition(slideId, elementId, top, left) {
             const storageKey = `slide_data_${slideId}`;
             let slideData = JSON.parse(localStorage.getItem(storageKey) || '{}');
             slideData[elementId] = { top, left };
             localStorage.setItem(storageKey, JSON.stringify(slideData));
             
-            // Mostrar indicador de guardado
             saveMsg.style.display = 'inline';
-            setTimeout(() => { saveMsg.style.display = 'none'; }, 1000);
+            setTimeout(() => { saveMsg.style.display = 'none'; }, 800);
         }
 
-        // Función para aplicar posiciones guardadas
         function applySavedPositions(doc, slideId) {
             const storageKey = `slide_data_${slideId}`;
             const slideData = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -135,8 +130,10 @@
 
         async function loadSlide(num) {
             try {
+                // Simulación de carga de archivo de diapositiva
+                // En un entorno real, aquí se cargaría el .txt o .html correspondiente
                 const response = await fetch(`${num}.txt`);
-                if (!response.ok) throw new Error("No slide file");
+                if (!response.ok) throw new Error("Archivo no encontrado");
                 let content = await response.text();
 
                 canvas.innerHTML = '';
@@ -153,7 +150,7 @@
                 currentSlide = num;
                 currentNumDisp.innerText = num;
             } catch (err) {
-                console.error(err);
+                console.error("Error cargando diapositiva:", err);
             }
         }
 
@@ -168,30 +165,32 @@
                     height: 720px !important;
                     user-select: none;
                 }
+                /* Forzamos que las líneas y divisores sean interactivos */
+                hr, .divider, .line, [class*="border"], [class*="line"] {
+                    pointer-events: auto !important;
+                    min-height: 2px;
+                    min-width: 2px;
+                }
+                
                 * { cursor: grab !important; }
                 *:active { cursor: grabbing !important; }
-                
-                /* FIX Diapositiva 7: Mantener estructura pero permitir desborde */
+
+                /* FIX Diapositiva 7 */
                 ${slideNum === 7 ? `
-                    .grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 2rem; align-items: center; }
-                    .model-container { max-height: none !important; height: auto !important; display: block !important; }
-                    section, main { overflow: visible !important; height: auto !important; }
+                    .grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 2rem; }
+                    .model-container { max-height: none !important; }
                 ` : ''}
             `;
             doc.head.appendChild(style);
 
-            // Asignar IDs únicos temporales si no tienen para poder guardarlos
+            // Seleccionamos TODO incluyendo líneas decorativas (hr, div vacíos)
             const allElements = doc.querySelectorAll('body *:not(script):not(style):not(br)');
             allElements.forEach((el, index) => {
-                // Generamos un ID basado en su jerarquía o contenido si no tiene uno
-                const identifier = el.id || `el-${index}-${el.tagName}`;
+                const identifier = el.id || `${el.tagName}-${index}-${el.className.split(' ')[0] || 'element'}`;
                 el.setAttribute('data-edit-id', identifier);
-                
-                // Hacer draggable
                 makeDraggable(el, doc, slideNum);
             });
 
-            // Aplicar lo que el usuario movió anteriormente
             applySavedPositions(doc, slideNum);
         }
 
@@ -199,21 +198,22 @@
             let startX, startY, initialLeft, initialTop;
 
             el.addEventListener('mousedown', function(e) {
-                if (e.button !== 0) return; // Solo click izquierdo
+                if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
 
                 const rect = el.getBoundingClientRect();
                 
+                // Convertir a absoluto si no lo es
                 if (window.getComputedStyle(el).position !== 'absolute') {
                     const top = el.offsetTop;
                     const left = el.offsetLeft;
-                    el.style.width = rect.width + 'px'; // Mantener ancho
+                    el.style.width = rect.width + 'px';
                     el.style.position = 'absolute';
                     el.style.top = top + 'px';
                     el.style.left = left + 'px';
                     el.style.margin = '0';
-                    el.style.zIndex = '1000';
+                    el.style.zIndex = '9999';
                 }
 
                 startX = e.clientX;
@@ -224,17 +224,12 @@
                 function onMouseMove(moveEvent) {
                     const dx = moveEvent.clientX - startX;
                     const dy = moveEvent.clientY - startY;
-                    const newLeft = (initialLeft + dx) + 'px';
-                    const newTop = (initialTop + dy) + 'px';
-                    
-                    el.style.left = newLeft;
-                    el.style.top = newTop;
+                    el.style.left = (initialLeft + dx) + 'px';
+                    el.style.top = (initialTop + dy) + 'px';
                 }
 
                 function onMouseUp() {
-                    // Guardar al soltar
                     savePosition(slideId, el.getAttribute('data-edit-id'), el.style.top, el.style.left);
-                    
                     doc.removeEventListener('mousemove', onMouseMove);
                     doc.removeEventListener('mouseup', onMouseUp);
                 }
@@ -244,7 +239,6 @@
             });
         }
 
-        // Navegación
         function changeSlide(dir) {
             const next = currentSlide + dir;
             if (next >= 1 && next <= totalSlides) loadSlide(next);
