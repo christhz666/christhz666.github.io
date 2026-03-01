@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor Maestro - Protección Radiológica</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
         :root {
             --bg-color: #020617;
@@ -74,6 +76,56 @@
             font-weight: bold;
             display: none;
         }
+
+        #export-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        #export-btn:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 0.4);
+            color: #fff;
+        }
+        #export-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #export-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            color: white;
+            font-size: 16px;
+        }
+        #export-overlay.active { display: flex; }
+        #export-progress-bar-wrap {
+            width: 320px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #export-progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+        }
     </style>
 </head>
 <body>
@@ -85,8 +137,15 @@
         <span>|</span>
         <span>Navegar: <span class="key-hint">←</span> <span class="key-hint">→</span></span>
         <span id="save-msg" class="save-indicator">✓ Guardado</span>
+        <span>|</span>
+        <button id="export-btn" onclick="exportToPowerPoint()">📊 Exportar a PowerPoint</button>
     </div>
     
+    <div id="export-overlay">
+        <div id="export-status">Preparando exportación...</div>
+        <div id="export-progress-bar-wrap"><div id="export-progress-bar"></div></div>
+    </div>
+
     <div id="canvas"></div>
 
     <script>
@@ -260,6 +319,73 @@
         });
 
         loadSlide(1);
+
+        async function exportToPowerPoint() {
+            const btn = document.getElementById('export-btn');
+            const overlay = document.getElementById('export-overlay');
+            const statusEl = document.getElementById('export-status');
+            const progressBar = document.getElementById('export-progress-bar');
+
+            btn.disabled = true;
+            overlay.classList.add('active');
+
+            const pptx = new PptxGenJS();
+            pptx.layout = 'LAYOUT_WIDE'; // 13.33" x 7.5" (16:9)
+
+            // Hidden capture iframe (off-screen)
+            const captureFrame = document.createElement('iframe');
+            captureFrame.style.cssText = 'position:fixed;left:-9999px;top:0;width:1280px;height:720px;border:none;visibility:hidden;';
+            document.body.appendChild(captureFrame);
+
+            try {
+                for (let i = 1; i <= totalSlides; i++) {
+                    statusEl.textContent = `Procesando diapositiva ${i} de ${totalSlides}…`;
+                    progressBar.style.width = `${Math.round(((i - 1) / totalSlides) * 100)}%`;
+
+                    const response = await fetch(`${i}.txt`);
+                    if (!response.ok) throw new Error(`No se pudo cargar la diapositiva ${i}`);
+                    const html = await response.text();
+
+                    await new Promise((resolve, reject) => {
+                        captureFrame.onload = async () => {
+                            try {
+                                const doc = captureFrame.contentDocument || captureFrame.contentWindow.document;
+
+                                // Wait for fonts to be ready, then allow a short grace period for icons
+                                await doc.fonts.ready;
+                                await new Promise(r => setTimeout(r, 500));
+
+                                const canvas = await html2canvas(doc.body, {
+                                    width: 1280,
+                                    height: 720,
+                                    useCORS: true,
+                                    scale: 1,
+                                    backgroundColor: '#0a1628'
+                                });
+
+                                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                                const slide = pptx.addSlide();
+                                slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+                                resolve();
+                            } catch (err) { reject(err); }
+                        };
+                        captureFrame.srcdoc = html;
+                    });
+                }
+
+                progressBar.style.width = '100%';
+                statusEl.textContent = 'Generando archivo PowerPoint…';
+                await pptx.writeFile({ fileName: 'Proteccion_Radiologica.pptx' });
+            } catch (err) {
+                console.error('Error al exportar:', err);
+                statusEl.textContent = `Error: ${err.message}`;
+                await new Promise(r => setTimeout(r, 2500));
+            } finally {
+                document.body.removeChild(captureFrame);
+                overlay.classList.remove('active');
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
