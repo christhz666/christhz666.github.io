@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrección Diapositiva 12 - Líneas Guía</title>
+    <title>Editor de Diapositiva 12 - Movimiento Libre</title>
     <style>
         :root {
             --bg-dark: #020617;
             --accent-blue: #3b82f6;
+            --panel-bg: #1e293b;
         }
 
         body, html {
@@ -16,7 +17,7 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             color: white;
         }
 
@@ -29,233 +30,231 @@
         #canvas-area {
             flex: 1;
             position: relative;
+            background: radial-gradient(circle at center, #111827 0%, #020617 100%);
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
-            overflow: hidden;
         }
 
-        .slide-iframe {
+        #slide-container {
+            position: relative;
             width: 1280px;
             height: 720px;
             background: #000;
-            border: 1px solid #334155;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            border: 2px solid #334155;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
             transform-origin: center;
+            overflow: visible; /* Permitir que elementos salgan si es necesario */
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: auto;
         }
 
         #toolbar {
-            height: 60px;
+            height: 50px;
             background: #0f172a;
             border-top: 1px solid #334155;
             display: flex;
             align-items: center;
-            padding: 0 30px;
+            padding: 0 20px;
             justify-content: space-between;
-            z-index: 100;
+            z-index: 1000;
         }
 
-        .slide-info {
+        .controls {
             display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 14px;
-        }
-
-        .badge {
-            background: var(--accent-blue);
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .controls-hint {
-            color: #94a3b8;
+            gap: 20px;
             font-size: 13px;
+            color: #94a3b8;
         }
 
-        .save-toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
             background: #10b981;
-            padding: 10px 20px;
-            border-radius: 8px;
-            display: none;
-            animation: fadeIn 0.3s ease;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
         }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div id="app-container">
     <div id="canvas-area">
-        <div id="slide-wrapper">
-            <!-- El iframe se inyecta aquí -->
+        <div id="slide-container">
+            <iframe id="slide-frame"></iframe>
         </div>
     </div>
 
     <div id="toolbar">
-        <div class="slide-info">
-            <span class="badge" id="slide-label">Diapositiva 12</span>
-            <span class="controls-hint">Usa las flechas ← → para navegar. Arrastra las líneas para moverlas.</span>
+        <div class="controls">
+            <span><strong>Modo:</strong> Edición Libre (Slide 12)</span>
+            <span><span class="status-dot"></span> Arrastra el fondo para bajarlo</span>
+            <span>Arrastra las tarjetas para reubicarlas</span>
         </div>
-        <div id="save-status" style="color: #10b981; font-weight: 500; font-size: 13px; display: none;">
-            Cambios guardados localmente
-        </div>
+        <div id="save-indicator" style="color: #10b981; font-size: 12px; opacity: 0;">Cambio guardado</div>
     </div>
 </div>
 
-<div id="save-toast" class="save-toast">Posición guardada</div>
-
 <script>
+    const frame = document.getElementById('slide-frame');
+    const container = document.getElementById('slide-container');
+    const saveIndicator = document.getElementById('save-indicator');
     let currentSlide = 12;
-    const totalSlides = 13;
-    const wrapper = document.getElementById('slide-wrapper');
-    const slideLabel = document.getElementById('slide-label');
-    const saveToast = document.getElementById('save-toast');
 
-    // Función para guardar posiciones
-    function saveElementPos(slideId, elementId, top, left) {
-        const key = `slide_v2_pos_${slideId}`;
-        let data = JSON.parse(localStorage.getItem(key) || '{}');
-        data[elementId] = { top, left };
-        localStorage.setItem(key, JSON.stringify(data));
-        
-        document.getElementById('save-status').style.display = 'block';
-        setTimeout(() => { document.getElementById('save-status').style.display = 'none'; }, 2000);
-    }
+    // Cargar contenido
+    function init() {
+        // Simulamos la carga del contenido de la slide 12
+        // En producción, aquí se cargaría el archivo real
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { 
+                        background: #050505; 
+                        color: white; 
+                        margin: 0; 
+                        padding: 40px; 
+                        font-family: sans-serif;
+                        height: 100vh;
+                        cursor: grab;
+                    }
+                    body:active { cursor: grabbing; }
+                    
+                    /* Contenedor del fondo que queremos mover */
+                    #main-content {
+                        position: relative;
+                        transition: none;
+                    }
 
-    // Carga de la diapositiva
-    async function loadSlide(num) {
-        currentSlide = num;
-        slideLabel.innerText = `Diapositiva ${num}`;
-        wrapper.innerHTML = '';
-        
-        const iframe = document.createElement('iframe');
-        iframe.className = 'slide-iframe';
-        // Intentamos cargar el contenido. Si no existe el archivo físico, usamos un mockup para pruebas
-        try {
-            const response = await fetch(`${num}.txt`);
-            if (response.ok) {
-                const content = await response.text();
-                iframe.srcdoc = content;
-            } else {
-                // Mockup específico para la diapositiva 12 si falla la carga
-                if (num === 12) {
-                    iframe.srcdoc = `
-                        <html>
-                        <body style="background:#0a0a0a; color:white; overflow:hidden; font-family:sans-serif;">
-                            <div style="padding: 50px;">
-                                <h1>Análisis de Datos - Diapositiva 12</h1>
-                                <p>Mueve las líneas guía que delimitan los cuadrantes.</p>
-                                <!-- Estas son las líneas que el usuario no podía mover -->
-                                <div id="guia-h" class="linea-guia" style="position:absolute; top:300px; left:0; width:100%; height:2px; background:rgba(59,130,246,0.5); box-shadow: 0 0 10px blue;"></div>
-                                <div id="guia-v" class="linea-guia" style="position:absolute; top:0; left:640px; width:2px; height:100%; background:rgba(59,130,246,0.5); box-shadow: 0 0 10px blue;"></div>
-                            </div>
-                        </body>
-                        </html>
-                    `;
-                }
-            }
-        } catch (e) { console.error(e); }
+                    .tarjeta {
+                        position: absolute;
+                        background: #1e293b;
+                        border-left: 4px solid #3b82f6;
+                        padding: 20px;
+                        width: 250px;
+                        border-radius: 8px;
+                        cursor: move;
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+                        z-index: 10;
+                    }
 
-        wrapper.appendChild(iframe);
-        iframe.onload = () => {
-            adjustScale(iframe);
-            setupInteractions(iframe, num);
-        };
-    }
+                    h1 { color: #3b82f6; margin-bottom: 30px; }
 
-    function adjustScale(iframe) {
-        const scale = Math.min((window.innerWidth - 60) / 1280, (window.innerHeight - 100) / 720);
-        iframe.style.transform = `scale(${scale})`;
-    }
+                    /* Las líneas que no se movían */
+                    .linea-estatica {
+                        position: absolute;
+                        background: #334155;
+                        z-index: 1;
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="main-content">
+                    <h1>Métricas de Rendimiento - Q4</h1>
+                    
+                    <div class="linea-estatica" style="top: 300px; left: 0; width: 100%; height: 2px;"></div>
+                    <div class="linea-estatica" style="top: 0; left: 50%; width: 2px; height: 1000px;"></div>
 
-    function setupInteractions(iframe, slideId) {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        
-        // Inyectar CSS de corrección para líneas
-        const style = doc.createElement('style');
-        style.innerHTML = `
-            * { pointer-events: auto !important; }
-            .linea-guia, hr, [style*="height: 1px"], [style*="height: 2px"], [style*="width: 1px"], [style*="width: 2px"] {
-                cursor: ns-resize !important;
-                min-height: 10px !important; /* Aumentar área de agarre */
-                z-index: 9999 !important;
-            }
-            [style*="width: 1px"], [style*="width: 2px"] {
-                cursor: ew-resize !important;
-                min-width: 10px !important;
-            }
+                    <div class="tarjeta" id="card1" style="top: 100px; left: 100px;">
+                        <h3>Ventas Totales</h3>
+                        <p>$45,000.00</p>
+                        <small>+12% vs mes anterior</small>
+                    </div>
+
+                    <div class="tarjeta" id="card2" style="top: 100px; left: 700px;">
+                        <h3>Usuarios Activos</h3>
+                        <p>1,240</p>
+                        <small>Estable</small>
+                    </div>
+
+                    <div class="tarjeta" id="card3" style="top: 400px; left: 400px;">
+                        <h3>Tasa de Conversión</h3>
+                        <p>3.2%</p>
+                        <small>Requiere atención</small>
+                    </div>
+                </div>
+            </body>
+            </html>
         `;
-        doc.head.appendChild(style);
-
-        const elements = doc.querySelectorAll('body *');
-        const savedData = JSON.parse(localStorage.getItem(`slide_v2_pos_${slideId}`) || '{}');
-
-        elements.forEach((el, i) => {
-            if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
-            
-            const elId = el.id || `el-${slideId}-${i}`;
-            el.setAttribute('data-drag-id', elId);
-
-            // Aplicar posiciones guardadas
-            if (savedData[elId]) {
-                el.style.position = 'absolute';
-                el.style.top = savedData[elId].top;
-                el.style.left = savedData[elId].left;
-                el.style.margin = '0';
-            }
-
-            // Lógica de arrastre
-            el.onmousedown = (e) => {
-                if (e.button !== 0) return;
-                e.preventDefault();
-                e.stopPropagation();
-
-                const startY = e.clientY;
-                const startX = e.clientX;
-                const startTop = el.offsetTop;
-                const startLeft = el.offsetLeft;
-
-                // Forzar posición absoluta para poder mover
-                el.style.position = 'absolute';
-                el.style.margin = '0';
-
-                const onMouseMove = (me) => {
-                    const dy = me.clientY - startY;
-                    const dx = me.clientX - startX;
-                    el.style.top = (startTop + dy) + 'px';
-                    el.style.left = (startLeft + dx) + 'px';
-                };
-
-                const onMouseUp = () => {
-                    saveElementPos(slideId, elId, el.style.top, el.style.left);
-                    doc.removeEventListener('mousemove', onMouseMove);
-                    doc.removeEventListener('mouseup', onMouseUp);
-                };
-
-                doc.addEventListener('mousemove', onMouseMove);
-                doc.addEventListener('mouseup', onMouseUp);
-            };
-        });
+        frame.srcdoc = htmlContent;
     }
 
-    // Navegación
-    window.onkeydown = (e) => {
-        if (e.key === 'ArrowRight' && currentSlide < totalSlides) loadSlide(currentSlide + 1);
-        if (e.key === 'ArrowLeft' && currentSlide > 1) loadSlide(currentSlide - 1);
+    frame.onload = () => {
+        const doc = frame.contentDocument;
+        const mainContent = doc.getElementById('main-content');
+        
+        // Cargar posiciones previas del localStorage
+        const savedPositions = JSON.parse(localStorage.getItem('slide12_positions') || '{}');
+        Object.keys(savedPositions).forEach(id => {
+            const el = doc.getElementById(id) || doc.querySelector(`[data-id="${id}"]`);
+            if (el) {
+                el.style.top = savedPositions[id].top;
+                el.style.left = savedPositions[id].left;
+            }
+        });
+
+        // Lógica de arrastre universal
+        doc.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.tarjeta') || doc.body;
+            const isBody = target === doc.body;
+            
+            // Si es el body, moveremos el 'main-content'
+            const elementToMove = isBody ? mainContent : target;
+            
+            let startX = e.clientX;
+            let startY = e.clientY;
+            
+            const initialTop = parseInt(window.getComputedStyle(elementToMove).top) || 0;
+            const initialLeft = parseInt(window.getComputedStyle(elementToMove).left) || 0;
+
+            function onMouseMove(moveEvt) {
+                const deltaX = moveEvt.clientX - startX;
+                const deltaY = moveEvt.clientY - startY;
+                
+                elementToMove.style.position = 'absolute';
+                elementToMove.style.top = (initialTop + deltaY) + 'px';
+                elementToMove.style.left = (initialLeft + deltaX) + 'px';
+            }
+
+            function onMouseUp() {
+                doc.removeEventListener('mousemove', onMouseMove);
+                doc.removeEventListener('mouseup', onMouseUp);
+                
+                // Guardar posición
+                const id = elementToMove.id || 'main-content';
+                const currentPos = JSON.parse(localStorage.getItem('slide12_positions') || '{}');
+                currentPos[id] = { 
+                    top: elementToMove.style.top, 
+                    left: elementToMove.style.left 
+                };
+                localStorage.setItem('slide12_positions', JSON.stringify(currentPos));
+                
+                // Feedback visual
+                saveIndicator.style.opacity = 1;
+                setTimeout(() => saveIndicator.style.opacity = 0, 1000);
+            }
+
+            doc.addEventListener('mousemove', onMouseMove);
+            doc.addEventListener('mouseup', onMouseUp);
+        });
     };
 
-    window.onresize = () => adjustScale(document.querySelector('.slide-iframe'));
+    window.addEventListener('resize', () => {
+        const scale = Math.min(window.innerWidth / 1350, window.innerHeight / 800);
+        container.style.transform = `scale(${scale})`;
+    });
 
-    // Iniciar en la 12
-    loadSlide(12);
-
+    init();
+    window.dispatchEvent(new Event('resize'));
 </script>
+
 </body>
 </html>
