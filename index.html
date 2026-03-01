@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presentación Interactiva: Protección Radiológica</title>
-    <!-- Recursos Globales -->
+    <title>Presentación: Protección Radiológica</title>
+    
+    <!-- Recursos Globales Críticos -->
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet"/>
-    <!-- Cargamos Chart.js globalmente para que esté disponible en todas las diapositivas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -17,7 +17,7 @@
             height: 100vh; width: 100vw; 
             overflow: hidden;
             display: flex; justify-content: center; align-items: center;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Roboto', sans-serif;
         }
 
         #presentation-viewport {
@@ -25,7 +25,7 @@
             position: relative;
             transform-origin: center center;
             background: #0a1628;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
             overflow: hidden;
         }
 
@@ -35,66 +35,68 @@
             display: none;
             width: 100%;
             height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
 
         .slide-frame.active {
             display: block;
+            opacity: 1;
         }
 
-        /* Controles UI */
-        .ui-overlay {
+        /* UI de Navegación */
+        .navigation-bar {
             position: fixed;
-            bottom: 25px;
-            right: 25px;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            gap: 12px;
-            z-index: 9999;
-            opacity: 0.4;
-            transition: opacity 0.3s, transform 0.2s;
+            align-items: center;
+            gap: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 10px 25px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 1000;
         }
-        .ui-overlay:hover { opacity: 1; transform: translateY(-2px); }
 
         .nav-btn {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            width: 50px; height: 50px;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            background: none;
+            border: none;
+            color: #94a3b8;
             font-size: 1.2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: color 0.3s;
+            display: flex; align-items: center;
         }
-        .nav-btn:hover { background: #3b82f6; border-color: #60a5fa; }
+        .nav-btn:hover { color: #3b82f6; }
 
         #counter {
-            position: fixed;
-            bottom: 35px;
-            left: 35px;
-            color: rgba(255,255,255,0.4);
-            font-size: 14px;
+            color: #f8fafc;
+            font-size: 0.9rem;
             font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+            min-width: 120px;
+            text-align: center;
+            letter-spacing: 1px;
         }
 
-        #loading-screen {
+        #loader {
             position: fixed;
             inset: 0;
             background: #020617;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
+            transition: opacity 0.8s ease;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(59, 130, 246, 0.2);
-            border-top-color: #3b82f6;
+        .loader-ring {
+            width: 60px; height: 60px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-top: 4px solid #3b82f6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -104,18 +106,17 @@
 </head>
 <body>
 
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <p style="color: #60a5fa; margin-top: 25px; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700;">Optimizando visualización...</p>
+    <div id="loader">
+        <div class="loader-ring"></div>
+        <div style="color: #3b82f6; margin-top: 20px; letter-spacing: 2px; font-size: 12px; font-weight: bold;">CARGANDO RECURSOS...</div>
     </div>
 
     <div id="presentation-viewport"></div>
 
-    <div id="counter">CARGANDO...</div>
-
-    <div class="ui-overlay">
-        <button class="nav-btn" title="Anterior (Flecha Izquierda)" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
-        <button class="nav-btn" title="Siguiente (Flecha Derecha / Espacio)" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+    <div class="navigation-bar">
+        <button class="nav-btn" onclick="prevSlide()"><i class="fas fa-arrow-left"></i></button>
+        <div id="counter">1 / 13</div>
+        <button class="nav-btn" onclick="nextSlide()"><i class="fas fa-arrow-right"></i></button>
     </div>
 
     <script>
@@ -124,75 +125,60 @@
         const viewport = document.getElementById('presentation-viewport');
 
         function adjustScale() {
-            const scale = Math.min(window.innerWidth / 1300, window.innerHeight / 750);
+            const scale = Math.min(window.innerWidth / 1320, window.innerHeight / 760);
             viewport.style.transform = `scale(${scale})`;
         }
 
         async function createSlide(index) {
             try {
                 const response = await fetch(`${index}.txt`);
-                if (!response.ok) throw new Error(`No se pudo cargar ${index}.txt`);
                 const htmlContent = await response.text();
                 
                 const wrapper = document.createElement('div');
                 wrapper.className = `slide-frame ${index === 1 ? 'active' : ''}`;
                 wrapper.id = `slide-${index}`;
                 
+                // Usamos Shadow DOM para total aislamiento de estilos
                 const shadow = wrapper.attachShadow({mode: 'open'});
                 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlContent, 'text/html');
-                
-                // 1. Inyectar Estilos Críticos
-                const baseStyles = `
-                    :host { display: block; width: 100%; height: 100%; overflow: hidden; }
-                    * { box-sizing: border-box; }
+                // Template para inyectar recursos necesarios en cada sombra
+                shadow.innerHTML = `
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                    <style>
+                        :host { display: block; width: 1280px; height: 720px; overflow: hidden; background: #0a1628; }
+                        * { cursor: default; }
+                    </style>
+                    <div class="content-root">${htmlContent}</div>
                 `;
-                const baseStyleTag = document.createElement('style');
-                baseStyleTag.textContent = baseStyles;
-                shadow.appendChild(baseStyleTag);
 
-                // 2. Inyectar Tailwind y FontAwesome dentro del Shadow
-                const tailwindLink = document.createElement('link');
-                tailwindLink.rel = 'stylesheet';
-                tailwindLink.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
-                shadow.appendChild(tailwindLink);
-
-                const faLink = document.createElement('link');
-                faLink.rel = 'stylesheet';
-                faLink.href = 'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css';
-                shadow.appendChild(faLink);
-
-                // 3. Inyectar contenido HTML
-                const contentDiv = document.createElement('div');
-                contentDiv.innerHTML = doc.body.innerHTML;
-                shadow.appendChild(contentDiv);
-
-                // 4. Copiar estilos originales del archivo .txt
-                const originalStyles = doc.querySelectorAll('style');
-                originalStyles.forEach(st => shadow.appendChild(st.cloneNode(true)));
-
-                viewport.appendChild(wrapper);
-
-                // 5. Ejecutar Scripts con contexto de Shadow DOM
-                const scripts = doc.querySelectorAll('script');
-                scripts.forEach(s => {
+                // Procesar scripts de forma inteligente
+                const scripts = shadow.querySelectorAll('script');
+                scripts.forEach(oldScript => {
                     const newScript = document.createElement('script');
-                    // IMPORTANTE: Definimos una variable local dentro del script para que 
-                    // funciones como Chart.js puedan encontrar los elementos dentro del shadow
-                    const wrappedCode = `
-                        (function(shadow) {
-                            const document = shadow; // Reemplazamos el documento global por el shadow
-                            ${s.textContent}
-                        })(this.parentNode);
+                    // Proporcionamos un proxy de 'document' para que Chart.js encuentre el canvas
+                    const scriptWrapper = `
+                        (function() {
+                            const document = {
+                                getElementById: (id) => this.shadowRoot.getElementById(id),
+                                querySelector: (sel) => this.shadowRoot.querySelector(sel),
+                                querySelectorAll: (sel) => this.shadowRoot.querySelectorAll(sel),
+                                createElement: (tag) => window.document.createElement(tag)
+                            };
+                            const window = { ...window, Chart: window.Chart };
+                            try {
+                                ${oldScript.textContent}
+                            } catch(e) { console.warn("Reintentando script en slide ${index}..."); }
+                        }).bind(document.getElementById('slide-${index}'))();
                     `;
-                    newScript.textContent = wrappedCode;
-                    // Pequeño delay para asegurar que el DOM del shadow esté listo
-                    setTimeout(() => shadow.appendChild(newScript), 100);
+                    newScript.textContent = scriptWrapper;
+                    shadow.appendChild(newScript);
+                    oldScript.remove();
                 });
 
-            } catch (e) {
-                console.error("Error en slide:", index, e);
+                viewport.appendChild(wrapper);
+            } catch (err) {
+                console.error("Fallo al cargar diapositiva " + index, err);
             }
         }
 
@@ -200,52 +186,51 @@
             adjustScale();
             window.addEventListener('resize', adjustScale);
             
-            // Cargar diapositivas secuencialmente
+            // Carga paralela para mayor velocidad
+            const promises = [];
             for(let i = 1; i <= totalSlides; i++) {
-                await createSlide(i);
+                promises.push(createSlide(i));
             }
             
-            document.getElementById('loading-screen').style.opacity = '0';
+            await Promise.all(promises);
+            
+            // Ordenar en el DOM si es necesario
+            const frames = Array.from(viewport.children).sort((a, b) => {
+                return parseInt(a.id.split('-')[1]) - parseInt(b.id.split('-')[1]);
+            });
+            frames.forEach(f => viewport.appendChild(f));
+
+            document.getElementById('loader').style.opacity = '0';
             setTimeout(() => {
-                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('loader').style.display = 'none';
                 updateView();
-            }, 500);
+            }, 800);
         }
 
         function updateView() {
             const frames = document.querySelectorAll('.slide-frame');
             frames.forEach((f, i) => {
                 f.classList.toggle('active', i === currentIdx);
-                // Si la slide tiene una animación de entrada de Tailwind, reiniciarla
+                // Si la slide tiene un canvas (gráfico), intentamos redibujarlo si es necesario
                 if(i === currentIdx && f.shadowRoot) {
-                    const container = f.shadowRoot.querySelector('.slide-container');
-                    if(container) {
-                        container.style.animation = 'none';
-                        container.offsetHeight; // Trigger reflow
-                        container.style.animation = null;
+                    const canvas = f.shadowRoot.querySelector('canvas');
+                    if(canvas) {
+                        // Forzar un pequeño reflow para animaciones de Chart.js
+                        canvas.style.display = 'none';
+                        canvas.offsetHeight;
+                        canvas.style.display = 'block';
                     }
                 }
             });
-            document.getElementById('counter').innerText = `DIAPOSITIVA ${currentIdx + 1} / ${totalSlides}`;
+            document.getElementById('counter').innerText = `${currentIdx + 1} / ${totalSlides}`;
         }
 
-        function nextSlide() {
-            if(currentIdx < totalSlides - 1) { 
-                currentIdx++; 
-                updateView(); 
-            }
-        }
-
-        function prevSlide() {
-            if(currentIdx > 0) { 
-                currentIdx--; 
-                updateView(); 
-            }
-        }
+        function nextSlide() { if(currentIdx < totalSlides - 1) { currentIdx++; updateView(); } }
+        function prevSlide() { if(currentIdx > 0) { currentIdx--; updateView(); } }
 
         document.addEventListener('keydown', e => {
-            if(e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
-            if(e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+            if(e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if(e.key === 'ArrowLeft') prevSlide();
         });
 
         init();
