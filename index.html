@@ -3,237 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presentación: Protección Radiológica</title>
-    
-    <!-- Recursos Globales Críticos -->
+    <title>Protección Radiológica - Presentación Interactiva</title>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        body, html { 
-            margin: 0; padding: 0; 
-            background: #020617; 
-            height: 100vh; width: 100vw; 
+        :root {
+            --bg-dark: #020617;
+            --accent: #3b82f6;
+            --text-main: #f8fafc;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background: var(--bg-dark);
+            height: 100vh; width: 100vw;
             overflow: hidden;
-            display: flex; justify-content: center; align-items: center;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column;
         }
 
-        #presentation-viewport {
-            width: 1280px; height: 720px;
-            position: relative;
-            transform-origin: center center;
-            background: #0a1628;
-            box-shadow: 0 0 100px rgba(0,0,0,0.8);
-            overflow: hidden;
-        }
-
-        .slide-frame {
-            position: absolute;
-            inset: 0;
-            display: none;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        .slide-frame.active {
-            display: block;
-            opacity: 1;
-        }
-
-        /* UI de Navegación */
-        .navigation-bar {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
+        /* Contenedor Principal */
+        #viewport-container {
+            flex: 1;
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 20px;
-            background: rgba(15, 23, 42, 0.8);
-            padding: 10px 25px;
-            border-radius: 50px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-            z-index: 1000;
+            padding: 20px;
+            position: relative;
         }
 
-        .nav-btn {
-            background: none;
+        /* El Iframe que contendrá la slide */
+        #slide-frame {
+            width: 1280px;
+            height: 720px;
             border: none;
-            color: #94a3b8;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: color 0.3s;
-            display: flex; align-items: center;
+            background: #0a1628;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            transition: opacity 0.3s ease;
         }
-        .nav-btn:hover { color: #3b82f6; }
 
-        #counter {
-            color: #f8fafc;
-            font-size: 0.9rem;
+        /* Navegación Inferior */
+        .controls {
+            height: 80px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+
+        .btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 10px;
             font-weight: 600;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
             min-width: 120px;
             text-align: center;
-            letter-spacing: 1px;
         }
 
+        /* Pantalla de Carga */
         #loader {
             position: fixed;
             inset: 0;
-            background: #020617;
-            z-index: 9999;
+            background: var(--bg-dark);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            transition: opacity 0.8s ease;
+            z-index: 1000;
         }
 
-        .loader-ring {
-            width: 60px; height: 60px;
-            border: 4px solid rgba(59, 130, 246, 0.1);
-            border-top: 4px solid #3b82f6;
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(59, 130, 246, 0.2);
+            border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1300px) {
+            #slide-frame {
+                transform: scale(0.8);
+            }
+        }
     </style>
 </head>
 <body>
 
     <div id="loader">
-        <div class="loader-ring"></div>
-        <div style="color: #3b82f6; margin-top: 20px; letter-spacing: 2px; font-size: 12px; font-weight: bold;">CARGANDO RECURSOS...</div>
+        <div class="spinner"></div>
+        <p style="color: white; margin-top: 20px;">Iniciando Presentación...</p>
     </div>
 
-    <div id="presentation-viewport"></div>
+    <div id="viewport-container">
+        <iframe id="slide-frame" title="Slide Content"></iframe>
+    </div>
 
-    <div class="navigation-bar">
-        <button class="nav-btn" onclick="prevSlide()"><i class="fas fa-arrow-left"></i></button>
-        <div id="counter">1 / 13</div>
-        <button class="nav-btn" onclick="nextSlide()"><i class="fas fa-arrow-right"></i></button>
+    <div class="controls">
+        <button class="btn" id="prev-btn" onclick="changeSlide(-1)">
+            <i class="fas fa-chevron-left"></i> Anterior
+        </button>
+        <div class="page-info" id="page-display">1 / 13</div>
+        <button class="btn" id="next-btn" onclick="changeSlide(1)">
+            Siguiente <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 
     <script>
         const totalSlides = 13;
-        let currentIdx = 0;
-        const viewport = document.getElementById('presentation-viewport');
+        let currentSlide = 1;
+        const frame = document.getElementById('slide-frame');
+        const loader = document.getElementById('loader');
 
-        function adjustScale() {
-            const scale = Math.min(window.innerWidth / 1320, window.innerHeight / 760);
-            viewport.style.transform = `scale(${scale})`;
+        function updateScale() {
+            const container = document.getElementById('viewport-container');
+            const scale = Math.min(
+                (container.clientWidth - 40) / 1280,
+                (container.clientHeight - 40) / 720
+            );
+            frame.style.transform = `scale(${scale})`;
         }
 
-        async function createSlide(index) {
+        async function loadSlide(num) {
             try {
-                const response = await fetch(`${index}.txt`);
-                const htmlContent = await response.text();
+                const response = await fetch(`${num}.txt`);
+                if (!response.ok) throw new Error('Error al cargar archivo');
+                let content = await response.text();
                 
-                const wrapper = document.createElement('div');
-                wrapper.className = `slide-frame ${index === 1 ? 'active' : ''}`;
-                wrapper.id = `slide-${index}`;
-                
-                // Usamos Shadow DOM para total aislamiento de estilos
-                const shadow = wrapper.attachShadow({mode: 'open'});
-                
-                // Template para inyectar recursos necesarios en cada sombra
-                shadow.innerHTML = `
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                    <style>
-                        :host { display: block; width: 1280px; height: 720px; overflow: hidden; background: #0a1628; }
-                        * { cursor: default; }
-                    </style>
-                    <div class="content-root">${htmlContent}</div>
-                `;
+                // Inyectamos el contenido directamente en el documento del iframe
+                const doc = frame.contentWindow.document;
+                doc.open();
+                doc.write(content);
+                doc.close();
 
-                // Procesar scripts de forma inteligente
-                const scripts = shadow.querySelectorAll('script');
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    // Proporcionamos un proxy de 'document' para que Chart.js encuentre el canvas
-                    const scriptWrapper = `
-                        (function() {
-                            const document = {
-                                getElementById: (id) => this.shadowRoot.getElementById(id),
-                                querySelector: (sel) => this.shadowRoot.querySelector(sel),
-                                querySelectorAll: (sel) => this.shadowRoot.querySelectorAll(sel),
-                                createElement: (tag) => window.document.createElement(tag)
-                            };
-                            const window = { ...window, Chart: window.Chart };
-                            try {
-                                ${oldScript.textContent}
-                            } catch(e) { console.warn("Reintentando script en slide ${index}..."); }
-                        }).bind(document.getElementById('slide-${index}'))();
-                    `;
-                    newScript.textContent = scriptWrapper;
-                    shadow.appendChild(newScript);
-                    oldScript.remove();
-                });
-
-                viewport.appendChild(wrapper);
+                // Actualizar UI
+                document.getElementById('page-display').innerText = `${num} / ${totalSlides}`;
+                document.getElementById('prev-btn').disabled = (num === 1);
+                document.getElementById('next-btn').disabled = (num === totalSlides);
             } catch (err) {
-                console.error("Fallo al cargar diapositiva " + index, err);
+                console.error(err);
+                frame.contentWindow.document.body.innerHTML = `
+                    <div style="color: white; text-align: center; padding-top: 100px;">
+                        <h2>Error al cargar la diapositiva ${num}</h2>
+                        <p>Asegúrate de que el archivo ${num}.txt existe.</p>
+                    </div>`;
             }
         }
 
-        async function init() {
-            adjustScale();
-            window.addEventListener('resize', adjustScale);
-            
-            // Carga paralela para mayor velocidad
-            const promises = [];
-            for(let i = 1; i <= totalSlides; i++) {
-                promises.push(createSlide(i));
+        function changeSlide(direction) {
+            const next = currentSlide + direction;
+            if (next >= 1 && next <= totalSlides) {
+                currentSlide = next;
+                frame.style.opacity = '0';
+                setTimeout(() => {
+                    loadSlide(currentSlide);
+                    frame.style.opacity = '1';
+                }, 200);
             }
-            
-            await Promise.all(promises);
-            
-            // Ordenar en el DOM si es necesario
-            const frames = Array.from(viewport.children).sort((a, b) => {
-                return parseInt(a.id.split('-')[1]) - parseInt(b.id.split('-')[1]);
-            });
-            frames.forEach(f => viewport.appendChild(f));
-
-            document.getElementById('loader').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-                updateView();
-            }, 800);
         }
 
-        function updateView() {
-            const frames = document.querySelectorAll('.slide-frame');
-            frames.forEach((f, i) => {
-                f.classList.toggle('active', i === currentIdx);
-                // Si la slide tiene un canvas (gráfico), intentamos redibujarlo si es necesario
-                if(i === currentIdx && f.shadowRoot) {
-                    const canvas = f.shadowRoot.querySelector('canvas');
-                    if(canvas) {
-                        // Forzar un pequeño reflow para animaciones de Chart.js
-                        canvas.style.display = 'none';
-                        canvas.offsetHeight;
-                        canvas.style.display = 'block';
-                    }
-                }
+        // Iniciar
+        window.addEventListener('resize', updateScale);
+        
+        window.onload = () => {
+            updateScale();
+            loadSlide(1).then(() => {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }, 1000);
             });
-            document.getElementById('counter').innerText = `${currentIdx + 1} / ${totalSlides}`;
-        }
+        };
 
-        function nextSlide() { if(currentIdx < totalSlides - 1) { currentIdx++; updateView(); } }
-        function prevSlide() { if(currentIdx > 0) { currentIdx--; updateView(); } }
-
-        document.addEventListener('keydown', e => {
-            if(e.key === 'ArrowRight' || e.key === ' ') nextSlide();
-            if(e.key === 'ArrowLeft') prevSlide();
+        // Teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowRight" || e.key === " ") changeSlide(1);
+            if (e.key === "ArrowLeft") changeSlide(-1);
         });
-
-        init();
     </script>
 </body>
 </html>
