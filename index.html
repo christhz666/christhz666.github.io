@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protección Radiológica - Visor Estable</title>
+    <title>Editor de Protección Radiológica</title>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
     <style>
         :root {
             --bg-dark: #020617;
             --accent: #3b82f6;
-            --text-main: #f8fafc;
+            --panel-bg: rgba(15, 23, 42, 0.9);
         }
 
         body, html {
@@ -17,94 +17,177 @@
             background: var(--bg-dark);
             height: 100vh; width: 100vw;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; flex-direction: column;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
+        /* Contenedor Principal a Pantalla Completa */
         #viewport-container {
-            flex: 1;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
             background: #000;
+            position: relative;
         }
 
-        /* Iframe con aislamiento total */
         .slide-frame {
             position: absolute;
             width: 1280px;
             height: 720px;
             border: none;
             background: #0a1628;
-            border-radius: 4px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            box-shadow: 0 0 100px rgba(0,0,0,0.9);
             transform-origin: center;
-            display: block;
+            transition: transform 0.1s ease-out;
         }
 
-        .controls {
-            height: 60px;
-            background: #0f172a;
+        /* Controles Flotantes / Menú Lateral Retráctil */
+        #side-panel {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            z-index: 1000;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            color: white;
+        }
+
+        #side-panel.open { left: 0; }
+
+        .panel-trigger {
+            position: fixed;
+            left: 15px;
+            top: 15px;
+            width: 45px;
+            height: 45px;
+            background: var(--accent);
+            border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            z-index: 100;
+            color: white;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .panel-trigger:hover { transform: scale(1.1); }
+
+        .nav-header {
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+        }
+
+        .shortcut-hint {
+            margin-top: auto;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .btn {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: 0.2s;
-            display: flex; align-items: center; gap: 8px;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:hover { background: var(--accent); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .status-badge {
+            margin-top: 15px;
+            background: rgba(46, 213, 115, 0.1);
+            color: #2ed573;
+            padding: 8px;
+            border-radius: 4px;
             font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .btn:hover:not(:disabled) { background: var(--accent); }
-        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
-
-        .page-info {
-            color: #94a3b8;
-            font-size: 0.9rem;
-            min-width: 100px;
             text-align: center;
-            font-family: 'Roboto Mono', monospace;
+            border: 1px solid rgba(46, 213, 115, 0.2);
         }
+
     </style>
 </head>
 <body>
 
-    <div id="viewport-container">
-        <!-- El iframe se recreará aquí -->
+    <div class="panel-trigger" onclick="togglePanel()">
+        <i class="fas fa-bars"></i>
     </div>
 
-    <div class="controls">
-        <button class="btn" id="prev-btn" onclick="changeSlide(-1)">
-            <i class="fas fa-chevron-left"></i> Anterior
-        </button>
-        <div class="page-info" id="page-display">01 / 13</div>
-        <button class="btn" id="next-btn" onclick="changeSlide(1)">
-            Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
+    <div id="side-panel">
+        <div class="nav-header">
+            <i class="fas fa-edit"></i> Modo Editor
+        </div>
+        
+        <div class="control-group">
+            <button class="btn" onclick="changeSlide(-1)" id="prev-btn">
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <button class="btn" onclick="changeSlide(1)" id="next-btn">
+                <i class="fas fa-chevron-right"></i> Siguiente
+            </button>
+            <button class="btn" style="margin-top: 20px;" onclick="saveChanges()">
+                <i class="fas fa-save"></i> Imprimir / Guardar PDF
+            </button>
+        </div>
+
+        <div class="status-badge" id="slide-count">Cargando...</div>
+
+        <div class="shortcut-hint">
+            <strong>Atajos de Teclado:</strong><br><br>
+            • Espacio / Flechas: Navegar<br>
+            • M: Mostrar/Ocultar Menú<br>
+            • Click: Editar cualquier texto
+        </div>
     </div>
+
+    <div id="viewport-container"></div>
 
     <script>
         const totalSlides = 13;
         let currentSlide = 1;
         const container = document.getElementById('viewport-container');
+        const panel = document.getElementById('side-panel');
+
+        function togglePanel() {
+            panel.classList.toggle('open');
+        }
 
         function updateScale(frame) {
             if (!frame) return;
             const scale = Math.min(
-                (container.clientWidth - 40) / 1280,
-                (container.clientHeight - 40) / 720
+                window.innerWidth / 1280,
+                window.innerHeight / 720
             );
             frame.style.transform = `scale(${scale})`;
         }
@@ -112,55 +195,73 @@
         async function loadSlide(num) {
             try {
                 const response = await fetch(`${num}.txt`);
-                if (!response.ok) throw new Error("No se pudo cargar la diapositiva");
-                const htmlContent = await response.text();
+                if (!response.ok) throw new Error("Archivo no encontrado");
+                
+                let content = await response.text();
 
-                // LIMPIEZA ABSOLUTA: 
-                // Eliminamos cualquier iframe existente para matar procesos de JS previos
+                // Normalización de fuentes para evitar errores de carga
+                content = content.replace(/family=Montserrat:wght@.*?&amp;family=Roboto/g, 'family=Montserrat:wght@300;400;600;700&family=Roboto');
+
                 container.innerHTML = '';
+                const frame = document.createElement('iframe');
+                frame.className = 'slide-frame';
+                frame.srcdoc = content;
+                container.appendChild(frame);
 
-                // CREACIÓN DESDE CERO:
-                const newFrame = document.createElement('iframe');
-                newFrame.className = 'slide-frame';
-                
-                // Usamos srcdoc para asegurar un "Clean Slate" (pizarra limpia)
-                // Esto previene el error "Identifier already declared"
-                newFrame.srcdoc = htmlContent;
+                frame.onload = () => {
+                    updateScale(frame);
+                    const doc = frame.contentDocument || frame.contentWindow.document;
+                    
+                    // ACTIVAR MODO EDICIÓN EN EL IFRAME
+                    doc.body.contentEditable = 'true';
+                    doc.body.style.cursor = 'text';
+                    
+                    // Inyectar CSS adicional para que el cursor de edición sea visible
+                    const style = doc.createElement('style');
+                    style.innerHTML = `
+                        *:focus { outline: 2px dashed #3b82f6 !important; background: rgba(59, 130, 246, 0.05); }
+                        [contenteditable="true"]:empty:before { content: attr(placeholder); color: grey; }
+                    `;
+                    doc.head.appendChild(style);
+                };
 
-                container.appendChild(newFrame);
-
-                // Re-escalar cuando el iframe cargue
-                newFrame.onload = () => updateScale(newFrame);
-                
-                // Actualizar UI
-                document.getElementById('page-display').innerText = `${String(num).padStart(2, '0')} / ${totalSlides}`;
+                currentSlide = num;
+                document.getElementById('slide-count').innerText = `Diapositiva ${num} de ${totalSlides}`;
                 document.getElementById('prev-btn').disabled = (num === 1);
                 document.getElementById('next-btn').disabled = (num === totalSlides);
-                
-                currentSlide = num;
 
             } catch (err) {
-                console.error("Error:", err);
+                console.error(err);
             }
         }
 
-        function changeSlide(direction) {
-            const next = currentSlide + direction;
-            if (next >= 1 && next <= totalSlides) {
-                loadSlide(next);
+        function changeSlide(dir) {
+            const next = currentSlide + dir;
+            if (next >= 1 && next <= totalSlides) loadSlide(next);
+        }
+
+        function saveChanges() {
+            // Dado que es un entorno de visor, la mejor forma de "guardar" 
+            // es imprimir la vista actual a PDF
+            const frame = container.querySelector('iframe');
+            if (frame) {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
             }
         }
 
-        // Observar cambios de tamaño de ventana
+        // Eventos Globales
         window.addEventListener('resize', () => {
             const frame = container.querySelector('iframe');
-            if (frame) updateScale(frame);
+            updateScale(frame);
         });
 
-        // Teclado
         document.addEventListener('keydown', (e) => {
-            if (e.key === "ArrowRight") changeSlide(1);
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            if (e.key === "ArrowRight" || e.key === " ") changeSlide(1);
             if (e.key === "ArrowLeft") changeSlide(-1);
+            if (e.key.toLowerCase() === "m") togglePanel();
         });
 
         // Inicio
