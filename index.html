@@ -322,14 +322,25 @@
 
         // PowerPoint Export Configuration
         const PPTX_CONFIG = {
+            // Timing
             CHART_RENDER_WAIT_MS: 1500,
             ADDITIONAL_CHART_WAIT_MS: 800,
+            
+            // Text processing
             CHARS_PER_LINE: 70,
-            LINE_HEIGHT_MULTIPLIER: 0.35,      // Height per line in inches (adjusted for PowerPoint)
+            LINE_HEIGHT_MULTIPLIER: 0.35, // Height per line in inches (adjusted for PowerPoint)
             MIN_TEXT_LENGTH: 3,
             PAGE_NUMBER_PAD_LENGTH: 2,
+            
+            // Image quality
             IMAGE_SCALE: 1.5,
             IMAGE_QUALITY: 0.95,
+            
+            // Spacing
+            TITLE_SPACING: 0.4,
+            CONTENT_SPACING: 0.1,
+            CONTENT_INDENT_ADJUSTMENT: 0.2,
+            
             // Layout positions (in inches for 16:9 slide)
             TITLE_X: 0.8,
             TITLE_Y: 0.4,
@@ -356,6 +367,7 @@
             FOOTER_RIGHT_X: 11.5,
             FOOTER_WIDTH: 1.5,
             FOOTER_HEIGHT: 0.3,
+            
             // Content
             FOOTER_TEXT: 'Protección Radiológica - Capítulo I'
         };
@@ -510,7 +522,7 @@
                             valign: 'top',
                             bullet: false
                         });
-                        yPosition += 0.35;
+                        yPosition += PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER;
                         continue;
                     }
                     
@@ -521,7 +533,7 @@
                                 x: PPTX_CONFIG.CONTENT_X,
                                 y: yPosition,
                                 w: PPTX_CONFIG.CONTENT_WIDTH,
-                                h: 0.35,
+                                h: PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER,
                                 fontSize: 13,
                                 bold: true,
                                 color: '00d4ff',
@@ -529,7 +541,7 @@
                                 align: 'left',
                                 valign: 'top'
                             });
-                            yPosition += 0.4;
+                            yPosition += PPTX_CONFIG.TITLE_SPACING;
                         }
                     }
                     
@@ -540,7 +552,7 @@
                             slide.addText(cleanText, {
                                 x: PPTX_CONFIG.CONTENT_INDENT_X,
                                 y: yPosition,
-                                w: PPTX_CONFIG.CONTENT_WIDTH - 0.2,
+                                w: PPTX_CONFIG.CONTENT_WIDTH - PPTX_CONFIG.CONTENT_INDENT_ADJUSTMENT,
                                 h: 'auto',
                                 fontSize: 10,
                                 color: 'e0e6ed',
@@ -551,7 +563,7 @@
                             
                             // Estimate height based on text length
                             const estimatedHeight = Math.max(0.3, Math.ceil(cleanText.length / PPTX_CONFIG.CHARS_PER_LINE) * PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER);
-                            yPosition += estimatedHeight + 0.1;
+                            yPosition += estimatedHeight + PPTX_CONFIG.CONTENT_SPACING;
                         }
                     }
                 }
