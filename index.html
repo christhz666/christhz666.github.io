@@ -353,7 +353,7 @@
 
                                 // Wait for fonts to be ready, then allow a short grace period for icons
                                 await doc.fonts.ready;
-                                await new Promise(r => setTimeout(r, 1000)); // Increased wait time for charts
+                                await new Promise(r => setTimeout(r, 1500)); // Increased wait time for charts and animations
 
                                 const slide = pptx.addSlide();
                                 
@@ -385,142 +385,204 @@
         }
 
         async function extractAndAddContent(doc, slide, slideNum) {
-            // Get the window object from the iframe
-            const win = doc.defaultView || doc.parentWindow;
-            
-            // Extract main title
-            const titleEl = doc.querySelector('.title, h1');
-            if (titleEl) {
-                const titleText = titleEl.textContent.trim();
-                slide.addText(titleText, {
-                    x: 0.8, y: 0.4, w: 11, h: 0.8,
-                    fontSize: 32,
-                    bold: true,
-                    color: 'FFFFFF',
-                    fontFace: 'Montserrat',
-                    align: 'left',
-                    valign: 'middle'
-                });
-
-                // Add title marker/accent line
-                slide.addShape(pptx.ShapeType.rect, {
-                    x: 0.4, y: 0.4, w: 0.08, h: 0.8,
-                    fill: { color: '00d4ff' }
-                });
-            }
-
-            // Extract and add text content - improved selector
-            const contentContainers = doc.querySelectorAll('.bullet-point, .concept-card, .group-box, .list-item');
-            let yPosition = 1.5;
-            const maxY = 6.5;
-            const leftColumnWidth = 5.5;
-            
-            contentContainers.forEach((container) => {
-                if (yPosition > maxY) return;
-                
-                // Skip footer elements
-                if (container.closest('.footer')) return;
-                
-                // Extract title if present
-                const titleEl = container.querySelector('.concept-title, .group-title, .list-number');
-                const textEl = container.querySelector('.concept-text, .group-desc, .bullet-text, .list-text');
-                
+            try {
+                // Extract main title
+                const titleEl = doc.querySelector('.title, h1');
                 if (titleEl) {
                     const titleText = titleEl.textContent.trim();
                     if (titleText) {
                         slide.addText(titleText, {
-                            x: 0.8, 
-                            y: yPosition, 
-                            w: leftColumnWidth, 
-                            h: 0.35,
-                            fontSize: 14,
+                            x: 0.8, y: 0.4, w: 11, h: 0.8,
+                            fontSize: 32,
+                            bold: true,
+                            color: 'FFFFFF',
+                            fontFace: 'Montserrat',
+                            align: 'left',
+                            valign: 'middle'
+                        });
+
+                        // Add title marker/accent line
+                        slide.addShape(pptx.ShapeType.rect, {
+                            x: 0.4, y: 0.4, w: 0.08, h: 0.8,
+                            fill: { color: '00d4ff' }
+                        });
+                    }
+                }
+
+                // Check for subtitle (h2)
+                const subtitleEl = doc.querySelector('h2');
+                if (subtitleEl && !subtitleEl.closest('.footer')) {
+                    const subtitleText = subtitleEl.textContent.trim();
+                    if (subtitleText) {
+                        slide.addText(subtitleText, {
+                            x: 0.8, y: 1.3, w: 11, h: 0.5,
+                            fontSize: 18,
                             bold: true,
                             color: '00d4ff',
                             fontFace: 'Montserrat',
                             align: 'left',
                             valign: 'top'
                         });
-                        yPosition += 0.4;
                     }
                 }
+
+                // Extract and add text content - improved selector
+                const contentContainers = doc.querySelectorAll('.bullet-point, .concept-card, .group-box, .list-item');
+                let yPosition = 1.9;
+                const maxY = 6.5;
+                const leftColumnWidth = 5.5;
                 
-                if (textEl) {
-                    const text = textEl.textContent.trim();
-                    if (text && text.length >= 3) {
-                        // Remove HTML tags and clean up
-                        const cleanText = text.replace(/<[^>]*>/g, '');
+                contentContainers.forEach((container) => {
+                    if (yPosition > maxY) return;
+                    
+                    // Skip footer elements
+                    if (container.closest('.footer')) return;
+                    
+                    // Extract title if present
+                    const titleEl = container.querySelector('.concept-title, .group-title');
+                    const listNumber = container.querySelector('.list-number');
+                    const textEl = container.querySelector('.concept-text, .group-desc, .bullet-text, .list-text');
+                    
+                    // Handle list items with numbers
+                    if (listNumber && textEl) {
+                        const number = listNumber.textContent.trim();
+                        const text = textEl.textContent.trim();
+                        const fullText = `${number}. ${text}`;
                         
-                        slide.addText(cleanText, {
+                        slide.addText(fullText, {
                             x: 0.8, 
                             y: yPosition, 
                             w: leftColumnWidth, 
                             h: 'auto',
-                            fontSize: 11,
-                            color: 'e0e6ed',
+                            fontSize: 12,
+                            color: 'FFFFFF',
                             fontFace: 'Roboto',
                             align: 'left',
-                            valign: 'top'
+                            valign: 'top',
+                            bullet: false
                         });
-                        
-                        // Estimate height based on text length
-                        const estimatedHeight = Math.max(0.25, (cleanText.length / 80) * 0.25);
-                        yPosition += estimatedHeight + 0.15;
+                        yPosition += 0.35;
+                        return;
+                    }
+                    
+                    if (titleEl) {
+                        const titleText = titleEl.textContent.trim();
+                        if (titleText) {
+                            slide.addText(titleText, {
+                                x: 0.8, 
+                                y: yPosition, 
+                                w: leftColumnWidth, 
+                                h: 0.35,
+                                fontSize: 13,
+                                bold: true,
+                                color: '00d4ff',
+                                fontFace: 'Montserrat',
+                                align: 'left',
+                                valign: 'top'
+                            });
+                            yPosition += 0.4;
+                        }
+                    }
+                    
+                    if (textEl) {
+                        const text = textEl.textContent.trim();
+                        if (text && text.length >= 3) {
+                            // Remove HTML tags and clean up
+                            const cleanText = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
+                            
+                            slide.addText(cleanText, {
+                                x: 1.0, 
+                                y: yPosition, 
+                                w: leftColumnWidth - 0.2, 
+                                h: 'auto',
+                                fontSize: 10,
+                                color: 'e0e6ed',
+                                fontFace: 'Roboto',
+                                align: 'left',
+                                valign: 'top'
+                            });
+                            
+                            // Estimate height based on text length
+                            const estimatedHeight = Math.max(0.3, Math.ceil(cleanText.length / 70) * 0.25);
+                            yPosition += estimatedHeight + 0.1;
+                        }
+                    }
+                });
+
+                // For slides with charts or complex visuals, capture them as images
+                const hasChart = doc.querySelector('canvas');
+                const visualArea = doc.querySelector('.visual-column, .right-column, .chart-container, .penetration-diagram, .left-panel');
+                
+                if (hasChart || visualArea) {
+                    // Wait for charts to render
+                    if (hasChart) {
+                        await new Promise(r => setTimeout(r, 800));
+                    }
+                    
+                    if (visualArea) {
+                        try {
+                            const canvas = await html2canvas(visualArea, {
+                                width: visualArea.scrollWidth,
+                                height: visualArea.scrollHeight,
+                                useCORS: true,
+                                scale: 1.5,
+                                backgroundColor: null,
+                                logging: false,
+                                onclone: (clonedDoc) => {
+                                    // Ensure canvas elements are visible in clone
+                                    const canvases = clonedDoc.querySelectorAll('canvas');
+                                    canvases.forEach(c => {
+                                        c.style.opacity = '1';
+                                        c.style.visibility = 'visible';
+                                    });
+                                }
+                            });
+
+                            const imgData = canvas.toDataURL('image/png', 0.95);
+                            
+                            // Position based on slide layout
+                            const isLeftPanel = visualArea.classList.contains('left-panel');
+                            slide.addImage({ 
+                                data: imgData, 
+                                x: isLeftPanel ? 0.5 : 6.8, 
+                                y: isLeftPanel ? 1.0 : 1.5, 
+                                w: isLeftPanel ? 4.5 : 6, 
+                                h: isLeftPanel ? 5.5 : 4.5,
+                                sizing: { type: 'contain', w: isLeftPanel ? 4.5 : 6, h: isLeftPanel ? 5.5 : 4.5 }
+                            });
+                        } catch (err) {
+                            console.warn(`Failed to capture visual for slide ${slideNum}:`, err);
+                        }
                     }
                 }
-            });
 
-            // For slides with charts or complex visuals, capture them as images
-            const hasChart = doc.querySelector('canvas');
-            const hasComplexVisual = doc.querySelector('.penetration-diagram, .chart-container, .range-visual-container, .visual-column, .right-column');
-            
-            if (hasChart || hasComplexVisual) {
-                // Wait for charts to render
-                if (hasChart) {
-                    await new Promise(r => setTimeout(r, 500));
-                }
+                // Add footer text
+                slide.addText('Protección Radiológica - Capítulo I', {
+                    x: 0.5, y: 6.8, w: 5, h: 0.3,
+                    fontSize: 9,
+                    color: '666666',
+                    fontFace: 'Roboto Mono',
+                    align: 'left'
+                });
                 
-                // Capture the visual area as an image
-                const visualArea = doc.querySelector('.visual-column, .right-column') || 
-                                  doc.querySelector('.chart-container') ||
-                                  doc.querySelector('.penetration-diagram');
-                
-                if (visualArea) {
-                    const canvas = await html2canvas(visualArea, {
-                        width: visualArea.scrollWidth,
-                        height: visualArea.scrollHeight,
-                        useCORS: true,
-                        scale: 1.5,
-                        backgroundColor: null
-                    });
-
-                    const imgData = canvas.toDataURL('image/png', 0.95);
-                    slide.addImage({ 
-                        data: imgData, 
-                        x: 6.8, 
-                        y: 1.5, 
-                        w: 6, 
-                        h: 4.5,
-                        sizing: { type: 'contain', w: 6, h: 4.5 }
-                    });
-                }
+                slide.addText(`Página ${slideNum.toString().padStart(2, '0')}`, {
+                    x: 11.5, y: 6.8, w: 1.5, h: 0.3,
+                    fontSize: 9,
+                    color: '666666',
+                    fontFace: 'Roboto Mono',
+                    align: 'right'
+                });
+            } catch (error) {
+                console.error(`Error extracting content for slide ${slideNum}:`, error);
+                // Fallback: Add error message to slide
+                slide.addText(`Error al procesar contenido de diapositiva ${slideNum}`, {
+                    x: 1, y: 3, w: 11.33, h: 1,
+                    fontSize: 16,
+                    color: 'FF0000',
+                    align: 'center',
+                    valign: 'middle'
+                });
             }
-
-            // Add footer text
-            slide.addText('Protección Radiológica - Capítulo I', {
-                x: 0.5, y: 6.8, w: 5, h: 0.3,
-                fontSize: 9,
-                color: '666666',
-                fontFace: 'Roboto Mono',
-                align: 'left'
-            });
-            
-            slide.addText(`Página ${slideNum.toString().padStart(2, '0')}`, {
-                x: 11.5, y: 6.8, w: 1.5, h: 0.3,
-                fontSize: 9,
-                color: '666666',
-                fontFace: 'Roboto Mono',
-                align: 'right'
-            });
         }
     </script>
 </body>
