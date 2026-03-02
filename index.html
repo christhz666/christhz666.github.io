@@ -6,6 +6,7 @@
     <title>Editor Maestro - Protección Radiológica</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.0/dist/jspdf.umd.min.js"></script>
     <style>
         :root {
             --bg-color: #020617;
@@ -77,25 +78,47 @@
             display: none;
         }
 
-        #export-btn {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
+        .action-btn {
             font-size: 13px;
             font-weight: 600;
             padding: 6px 16px;
             border-radius: 20px;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s;
+            transition: background 0.2s, color 0.2s, opacity 0.2s;
+            border: 1px solid transparent;
         }
-        #export-btn:hover:not(:disabled) {
-            background: rgba(59, 130, 246, 0.4);
-            color: #fff;
-        }
-        #export-btn:disabled {
-            opacity: 0.6;
+        .action-btn:disabled {
+            opacity: 0.45;
             cursor: not-allowed;
         }
+        #export-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        #export-btn:hover:not(:disabled) { background: rgba(59, 130, 246, 0.4); color: #fff; }
+
+        #pdf-btn {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.4);
+            color: #a78bfa;
+        }
+        #pdf-btn:hover:not(:disabled) { background: rgba(139, 92, 246, 0.4); color: #fff; }
+
+        #save-btn {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+        #save-btn:hover:not(:disabled) { background: rgba(16, 185, 129, 0.4); color: #fff; }
+        #save-btn:disabled { opacity: 0.35; }
+
+        #undo-btn {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+        }
+        #undo-btn:hover:not(:disabled) { background: rgba(245, 158, 11, 0.4); color: #fff; }
 
         #export-overlay {
             display: none;
@@ -138,7 +161,11 @@
         <span>Navegar: <span class="key-hint">←</span> <span class="key-hint">→</span></span>
         <span id="save-msg" class="save-indicator">✓ Guardado</span>
         <span>|</span>
-        <button id="export-btn" onclick="exportToPowerPoint()">📊 Exportar a PowerPoint</button>
+        <button id="save-btn" class="action-btn" disabled onclick="saveManual()" title="Guardar posiciones (Ctrl+S)">💾 Guardar</button>
+        <button id="undo-btn" class="action-btn" disabled onclick="undoLastMove()" title="Deshacer último movimiento (Ctrl+Z)">↩ Deshacer</button>
+        <span>|</span>
+        <button id="export-btn" class="action-btn" onclick="exportToPowerPoint()">📊 Exportar PPTX</button>
+        <button id="pdf-btn" class="action-btn" onclick="exportToPDF()">📄 Exportar PDF</button>
     </div>
     
     <div id="export-overlay">
@@ -155,16 +182,60 @@
         const currentNumDisp = document.getElementById('current-num');
         const saveMsg = document.getElementById('save-msg');
 
-        // Función para guardar posiciones en LocalStorage
-        function savePosition(slideId, elementId, top, left) {
-            const storageKey = `slide_data_${slideId}`;
-            let slideData = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            slideData[elementId] = { top, left };
-            localStorage.setItem(storageKey, JSON.stringify(slideData));
-            
-            // Mostrar indicador de guardado
+        // Pending changes (not yet persisted) and undo stack
+        const pendingChanges = {}; // { slideId: { elementId: {top, left} } }
+        const undoStack = []; // [{ slideId, elementId, prevTop, prevLeft }]
+        let hasPendingChanges = false;
+
+        function updateActionButtons() {
+            document.getElementById('save-btn').disabled = !hasPendingChanges;
+            document.getElementById('undo-btn').disabled = undoStack.length === 0;
+        }
+
+        // Track a position change for undo (called instead of auto-saving)
+        function trackChange(slideId, elementId, prevTop, prevLeft, newTop, newLeft) {
+            undoStack.push({ slideId, elementId, prevTop, prevLeft });
+            if (!pendingChanges[slideId]) pendingChanges[slideId] = {};
+            pendingChanges[slideId][elementId] = { top: newTop, left: newLeft };
+            hasPendingChanges = true;
+            updateActionButtons();
+        }
+
+        // Manual save: persist all pending changes to localStorage
+        function saveManual() {
+            const slideIds = Object.keys(pendingChanges);
+            slideIds.forEach(slideId => {
+                const storageKey = `slide_data_${slideId}`;
+                const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                Object.assign(existing, pendingChanges[slideId]);
+                localStorage.setItem(storageKey, JSON.stringify(existing));
+                delete pendingChanges[slideId];
+            });
+            hasPendingChanges = false;
+            // Keep undo history so users can still undo after an accidental save
             saveMsg.style.display = 'inline';
-            setTimeout(() => { saveMsg.style.display = 'none'; }, 1000);
+            setTimeout(() => { saveMsg.style.display = 'none'; }, 1500);
+            updateActionButtons();
+        }
+
+        // Undo the last drag operation
+        function undoLastMove() {
+            if (undoStack.length === 0) return;
+            const action = undoStack.pop();
+            const frame = canvas.querySelector('iframe');
+            if (frame) {
+                const doc = frame.contentDocument || frame.contentWindow.document;
+                const el = doc.querySelector(`[data-edit-id="${action.elementId}"]`);
+                if (el) {
+                    el.style.top = action.prevTop;
+                    el.style.left = action.prevLeft;
+                }
+            }
+            // Remove from pending changes
+            if (pendingChanges[action.slideId]) {
+                delete pendingChanges[action.slideId][action.elementId];
+            }
+            updateActionButtons();
         }
 
         // Función para aplicar posiciones guardadas
@@ -242,6 +313,9 @@
             // Asignar IDs únicos temporales si no tienen para poder guardarlos
             const allElements = doc.querySelectorAll('body *:not(script):not(style):not(br)');
             allElements.forEach((el, index) => {
+                // Skip SVG elements - they cannot be repositioned with CSS top/left
+                if (el.tagName.toLowerCase() === 'svg' || el.closest('svg')) return;
+
                 // Generamos un ID basado en su jerarquía o contenido si no tiene uno
                 const identifier = el.id || `el-${index}-${el.tagName}`;
                 el.setAttribute('data-edit-id', identifier);
@@ -291,8 +365,8 @@
                 }
 
                 function onMouseUp() {
-                    // Guardar al soltar
-                    savePosition(slideId, el.getAttribute('data-edit-id'), el.style.top, el.style.left);
+                    // Track change for undo/manual-save (do NOT auto-save to localStorage)
+                    trackChange(slideId, el.getAttribute('data-edit-id'), initialTop + 'px', initialLeft + 'px', el.style.top, el.style.left);
                     
                     doc.removeEventListener('mousemove', onMouseMove);
                     doc.removeEventListener('mouseup', onMouseUp);
@@ -312,6 +386,8 @@
         window.addEventListener('keydown', (e) => {
             if (e.key === "ArrowRight") changeSlide(1);
             if (e.key === "ArrowLeft") changeSlide(-1);
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoLastMove(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveManual(); }
         });
 
         window.addEventListener('resize', () => {
@@ -385,11 +461,13 @@
 
         async function exportToPowerPoint() {
             const btn = document.getElementById('export-btn');
+            const pdfBtn = document.getElementById('pdf-btn');
             const overlay = document.getElementById('export-overlay');
             const statusEl = document.getElementById('export-status');
             const progressBar = document.getElementById('export-progress-bar');
 
             btn.disabled = true;
+            pdfBtn.disabled = true;
             overlay.classList.add('active');
 
             const pptx = new PptxGenJS();
@@ -414,17 +492,14 @@
                             try {
                                 const doc = captureFrame.contentDocument || captureFrame.contentWindow.document;
 
-                                // Wait for fonts to be ready, then allow a short grace period for icons
+                                // Wait for fonts/icons to be ready
                                 await doc.fonts.ready;
-                                await new Promise(r => setTimeout(r, PPTX_CONFIG.CHART_RENDER_WAIT_MS));
+                                await new Promise(r => setTimeout(r, PPTX_CONFIG.CHART_RENDER_WAIT_MS + PPTX_CONFIG.ADDITIONAL_CHART_WAIT_MS));
 
                                 const slide = pptx.addSlide();
-                                
-                                // Set background color
                                 slide.background = { color: '0a1628' };
 
-                                // Extract and add content as editable elements
-                                await extractAndAddContent(doc, slide, i);
+                                await captureSlideAsImage(doc, slide, i);
 
                                 resolve();
                             } catch (err) { reject(err); }
@@ -444,217 +519,36 @@
                 document.body.removeChild(captureFrame);
                 overlay.classList.remove('active');
                 btn.disabled = false;
+                pdfBtn.disabled = false;
             }
         }
 
-        async function extractAndAddContent(doc, slide, slideNum) {
+        // Capture an entire slide as a PNG and add it to a pptx slide
+        async function captureSlideAsImage(doc, slide, slideNum) {
             try {
-                // Extract main title
-                const titleEl = doc.querySelector('.title, h1');
-                if (titleEl) {
-                    const titleText = titleEl.textContent.trim();
-                    if (titleText) {
-                        slide.addText(titleText, {
-                            x: PPTX_CONFIG.TITLE_X,
-                            y: PPTX_CONFIG.TITLE_Y,
-                            w: PPTX_CONFIG.TITLE_WIDTH,
-                            h: PPTX_CONFIG.TITLE_HEIGHT,
-                            fontSize: 32,
-                            bold: true,
-                            color: 'FFFFFF',
-                            fontFace: 'Montserrat',
-                            align: 'left',
-                            valign: 'middle'
-                        });
-
-                        // Add title marker/accent line
-                        slide.addShape(pptx.ShapeType.rect, {
-                            x: PPTX_CONFIG.TITLE_MARKER_X,
-                            y: PPTX_CONFIG.TITLE_MARKER_Y,
-                            w: PPTX_CONFIG.TITLE_MARKER_WIDTH,
-                            h: PPTX_CONFIG.TITLE_MARKER_HEIGHT,
-                            fill: { color: '00d4ff' }
-                        });
-                    }
-                }
-
-                // Check for subtitle (h2)
-                const subtitleEl = doc.querySelector('h2');
-                if (subtitleEl && !subtitleEl.closest('.footer')) {
-                    const subtitleText = subtitleEl.textContent.trim();
-                    if (subtitleText) {
-                        slide.addText(subtitleText, {
-                            x: PPTX_CONFIG.CONTENT_X,
-                            y: PPTX_CONFIG.SUBTITLE_Y,
-                            w: PPTX_CONFIG.TITLE_WIDTH,
-                            h: PPTX_CONFIG.SUBTITLE_HEIGHT,
-                            fontSize: 18,
-                            bold: true,
-                            color: '00d4ff',
-                            fontFace: 'Montserrat',
-                            align: 'left',
-                            valign: 'top'
-                        });
-                    }
-                }
-
-                // Extract and add text content
-                const contentContainers = doc.querySelectorAll('.bullet-point, .concept-card, .group-box, .list-item');
-                let yPosition = PPTX_CONFIG.CONTENT_START_Y;
-                
-                // Use for...of loop for better control flow
-                for (const container of contentContainers) {
-                    if (yPosition > PPTX_CONFIG.MAX_CONTENT_Y) break;
-                    
-                    // Skip footer elements
-                    if (container.closest('.footer')) continue;
-                    
-                    // Extract title if present
-                    const titleEl = container.querySelector('.concept-title, .group-title');
-                    const listNumber = container.querySelector('.list-number');
-                    const textEl = container.querySelector('.concept-text, .group-desc, .bullet-text, .list-text');
-                    
-                    // Handle list items with numbers
-                    if (listNumber && textEl) {
-                        const number = listNumber.textContent.trim();
-                        const text = textEl.textContent.trim();
-                        const fullText = `${number}. ${text}`;
-                        
-                        slide.addText(fullText, {
-                            x: PPTX_CONFIG.CONTENT_X,
-                            y: yPosition,
-                            w: PPTX_CONFIG.CONTENT_WIDTH,
-                            h: 'auto',
-                            fontSize: 12,
-                            color: 'FFFFFF',
-                            fontFace: 'Roboto',
-                            align: 'left',
-                            valign: 'top',
-                            bullet: false
-                        });
-                        yPosition += PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER;
-                        continue;
-                    }
-                    
-                    if (titleEl) {
-                        const titleText = titleEl.textContent.trim();
-                        if (titleText) {
-                            slide.addText(titleText, {
-                                x: PPTX_CONFIG.CONTENT_X,
-                                y: yPosition,
-                                w: PPTX_CONFIG.CONTENT_WIDTH,
-                                h: PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER,
-                                fontSize: 13,
-                                bold: true,
-                                color: '00d4ff',
-                                fontFace: 'Montserrat',
-                                align: 'left',
-                                valign: 'top'
-                            });
-                            yPosition += PPTX_CONFIG.TITLE_SPACING;
-                        }
-                    }
-                    
-                    if (textEl) {
-                        // textContent already extracts text-only content from DOM
-                        const cleanText = textEl.textContent.trim().replace(/\s+/g, ' ');
-                        if (cleanText && cleanText.length >= PPTX_CONFIG.MIN_TEXT_LENGTH) {
-                            slide.addText(cleanText, {
-                                x: PPTX_CONFIG.CONTENT_INDENT_X,
-                                y: yPosition,
-                                w: PPTX_CONFIG.CONTENT_WIDTH - PPTX_CONFIG.CONTENT_INDENT_ADJUSTMENT,
-                                h: 'auto',
-                                fontSize: 10,
-                                color: 'e0e6ed',
-                                fontFace: 'Roboto',
-                                align: 'left',
-                                valign: 'top'
-                            });
-                            
-                            // Estimate height based on text length
-                            const estimatedHeight = Math.max(PPTX_CONFIG.MIN_ESTIMATED_HEIGHT, Math.ceil(cleanText.length / PPTX_CONFIG.CHARS_PER_LINE) * PPTX_CONFIG.LINE_HEIGHT_MULTIPLIER);
-                            yPosition += estimatedHeight + PPTX_CONFIG.CONTENT_SPACING;
-                        }
-                    }
-                }
-
-                // For slides with charts or complex visuals, capture them as images
-                const hasChart = doc.querySelector('canvas');
-                const visualArea = doc.querySelector('.visual-column, .right-column, .chart-container, .penetration-diagram, .left-panel');
-                
-                if (hasChart || visualArea) {
-                    // Wait for charts to render
-                    if (hasChart) {
-                        await new Promise(r => setTimeout(r, PPTX_CONFIG.ADDITIONAL_CHART_WAIT_MS));
-                    }
-                    
-                    if (visualArea) {
-                        try {
-                            const canvas = await html2canvas(visualArea, {
-                                width: visualArea.scrollWidth,
-                                height: visualArea.scrollHeight,
-                                useCORS: true,
-                                scale: PPTX_CONFIG.IMAGE_SCALE,
-                                backgroundColor: null,
-                                logging: false,
-                                onclone: (clonedDoc) => {
-                                    // Ensure canvas elements are visible in clone
-                                    const canvases = clonedDoc.querySelectorAll('canvas');
-                                    canvases.forEach(c => {
-                                        c.style.opacity = '1';
-                                        c.style.visibility = 'visible';
-                                    });
-                                }
-                            });
-
-                            const imgData = canvas.toDataURL('image/png', PPTX_CONFIG.IMAGE_QUALITY);
-                            
-                            // Position based on slide layout
-                            const isLeftPanel = visualArea.classList.contains('left-panel');
-                            slide.addImage({ 
-                                data: imgData,
-                                x: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_X : PPTX_CONFIG.VISUAL_RIGHT_X,
-                                y: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_Y : PPTX_CONFIG.VISUAL_RIGHT_Y,
-                                w: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_W : PPTX_CONFIG.VISUAL_RIGHT_W,
-                                h: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_H : PPTX_CONFIG.VISUAL_RIGHT_H,
-                                sizing: {
-                                    type: 'contain',
-                                    w: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_W : PPTX_CONFIG.VISUAL_RIGHT_W,
-                                    h: isLeftPanel ? PPTX_CONFIG.VISUAL_LEFT_H : PPTX_CONFIG.VISUAL_RIGHT_H
-                                }
-                            });
-                        } catch (err) {
-                            console.warn(`Failed to capture visual for slide ${slideNum}:`, err);
-                        }
-                    }
-                }
-
-                // Add footer text
-                slide.addText(PPTX_CONFIG.FOOTER_TEXT, {
-                    x: PPTX_CONFIG.FOOTER_LEFT_X,
-                    y: PPTX_CONFIG.FOOTER_Y,
-                    w: PPTX_CONFIG.FOOTER_TEXT_WIDTH,
-                    h: PPTX_CONFIG.FOOTER_HEIGHT,
-                    fontSize: 9,
-                    color: '666666',
-                    fontFace: 'Roboto Mono',
-                    align: 'left'
+                const capturedCanvas = await html2canvas(doc.body, {
+                    width: 1280,
+                    height: 720,
+                    useCORS: true,
+                    allowTaint: true,
+                    scale: PPTX_CONFIG.IMAGE_SCALE,
+                    backgroundColor: '#0a1628',
+                    logging: false,
+                    windowWidth: 1280,
+                    windowHeight: 720
                 });
-                
-                slide.addText(`Página ${slideNum.toString().padStart(PPTX_CONFIG.PAGE_NUMBER_PAD_LENGTH, '0')}`, {
-                    x: PPTX_CONFIG.FOOTER_RIGHT_X,
-                    y: PPTX_CONFIG.FOOTER_Y,
-                    w: PPTX_CONFIG.FOOTER_WIDTH,
-                    h: PPTX_CONFIG.FOOTER_HEIGHT,
-                    fontSize: 9,
-                    color: '666666',
-                    fontFace: 'Roboto Mono',
-                    align: 'right'
+
+                const imgData = capturedCanvas.toDataURL('image/png', PPTX_CONFIG.IMAGE_QUALITY);
+
+                // Full-bleed image covering the entire 16:9 slide
+                slide.addImage({
+                    data: imgData,
+                    x: 0, y: 0,
+                    w: 13.33, h: 7.5
                 });
             } catch (error) {
-                console.error(`Error extracting content for slide ${slideNum}:`, error);
-                // Fallback: Add error message to slide
-                slide.addText(`Error al procesar contenido de diapositiva ${slideNum}`, {
+                console.error(`Error capturando diapositiva ${slideNum}:`, error);
+                slide.addText(`Error al procesar diapositiva ${slideNum}: ${error.message}`, {
                     x: PPTX_CONFIG.ERROR_MESSAGE_X,
                     y: PPTX_CONFIG.ERROR_MESSAGE_Y,
                     w: PPTX_CONFIG.ERROR_MESSAGE_WIDTH,
@@ -664,6 +558,80 @@
                     align: 'center',
                     valign: 'middle'
                 });
+            }
+        }
+
+        // PDF export using jsPDF – each slide as a full-page image
+        async function exportToPDF() {
+            const btn = document.getElementById('pdf-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const overlay = document.getElementById('export-overlay');
+            const statusEl = document.getElementById('export-status');
+            const progressBar = document.getElementById('export-progress-bar');
+
+            btn.disabled = true;
+            exportBtn.disabled = true;
+            overlay.classList.add('active');
+
+            const captureFrame = document.createElement('iframe');
+            captureFrame.style.cssText = 'position:fixed;left:-9999px;top:0;width:1280px;height:720px;border:none;visibility:hidden;';
+            document.body.appendChild(captureFrame);
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720] });
+
+                for (let i = 1; i <= totalSlides; i++) {
+                    statusEl.textContent = `Procesando diapositiva ${i} de ${totalSlides}…`;
+                    progressBar.style.width = `${Math.round(((i - 1) / totalSlides) * 100)}%`;
+
+                    const response = await fetch(`${i}.txt`);
+                    if (!response.ok) throw new Error(`No se pudo cargar la diapositiva ${i}`);
+                    const html = await response.text();
+
+                    await new Promise((resolve, reject) => {
+                        captureFrame.onload = async () => {
+                            try {
+                                const doc = captureFrame.contentDocument || captureFrame.contentWindow.document;
+
+                                await doc.fonts.ready;
+                                await new Promise(r => setTimeout(r, PPTX_CONFIG.CHART_RENDER_WAIT_MS + PPTX_CONFIG.ADDITIONAL_CHART_WAIT_MS));
+
+                                const capturedCanvas = await html2canvas(doc.body, {
+                                    width: 1280,
+                                    height: 720,
+                                    useCORS: true,
+                                    allowTaint: true,
+                                    scale: 1,
+                                    backgroundColor: '#0a1628',
+                                    logging: false,
+                                    windowWidth: 1280,
+                                    windowHeight: 720
+                                });
+
+                                const imgData = capturedCanvas.toDataURL('image/jpeg', 0.92);
+                                if (i > 1) pdf.addPage([1280, 720], 'landscape');
+                                pdf.addImage(imgData, 'JPEG', 0, 0, 1280, 720);
+
+                                resolve();
+                            } catch (err) { reject(err); }
+                        };
+                        captureFrame.srcdoc = html;
+                    });
+                }
+
+                progressBar.style.width = '100%';
+                statusEl.textContent = 'Generando archivo PDF…';
+                pdf.save('Proteccion_Radiologica.pdf');
+            } catch (err) {
+                console.error('Error al exportar PDF:', err);
+                statusEl.textContent = `Error PDF: ${err.message}`;
+                await new Promise(r => setTimeout(r, 2500));
+            } finally {
+                document.body.removeChild(captureFrame);
+                overlay.classList.remove('active');
+                btn.disabled = false;
+                exportBtn.disabled = false;
             }
         }
     </script>
